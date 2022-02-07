@@ -47,7 +47,7 @@ public class ChannelUserMessage extends ChannelMessage implements de.timesnake.c
     }
 
     @Override
-    public Object getValue() {
+    public String getValue() {
         return this.value;
     }
 
