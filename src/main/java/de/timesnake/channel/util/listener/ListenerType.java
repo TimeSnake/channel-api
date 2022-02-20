@@ -27,25 +27,12 @@ public enum ListenerType {
     USER_SERVICE(ChannelType.USER, MessageType.User.SERVICE, ChannelUserMessage.class, UUID.class),
     USER_SWITCH_PORT(ChannelType.USER, MessageType.User.SWITCH_PORT, ChannelUserMessage.class, UUID.class),
     USER_SWITCH_NAME(ChannelType.USER, MessageType.User.SWITCH_NAME, ChannelUserMessage.class, UUID.class),
-    USER_PERMISSION(ChannelType.USER, MessageType.User.PERMISSION, ChannelUserMessage.class, UUID.class),
-    USER_PUNISH(ChannelType.USER, MessageType.User.PUNISH, ChannelUserMessage.class, UUID.class),
-    USER_ALIAS(ChannelType.USER, MessageType.User.ALIAS, ChannelUserMessage.class, UUID.class),
-    USER_TASK(ChannelType.USER, MessageType.User.TASK, ChannelUserMessage.class, UUID.class),
-    USER_COMMAND(ChannelType.USER, MessageType.User.COMMAND, ChannelUserMessage.class, UUID.class),
-    USER_GROUP(ChannelType.USER, MessageType.User.GROUP, ChannelUserMessage.class, UUID.class),
-    USER_TEAM(ChannelType.USER, MessageType.User.TEAM, ChannelUserMessage.class, UUID.class),
-    USER_STATISTICS(ChannelType.USER, MessageType.User.STATISTICS, ChannelUserMessage.class, UUID.class),
-    USER_CUSTOM(ChannelType.USER, MessageType.User.CUSTOM, ChannelUserMessage.class, UUID.class),
-    USER_SOUND(ChannelType.USER, MessageType.User.SOUND, ChannelUserMessage.class, UUID.class),
+    USER_PERMISSION(ChannelType.USER, MessageType.User.PERMISSION, ChannelUserMessage.class, UUID.class), USER_PUNISH(ChannelType.USER, MessageType.User.PUNISH, ChannelUserMessage.class, UUID.class), USER_ALIAS(ChannelType.USER, MessageType.User.ALIAS, ChannelUserMessage.class, UUID.class), USER_TASK(ChannelType.USER, MessageType.User.TASK, ChannelUserMessage.class, UUID.class), USER_COMMAND(ChannelType.USER, MessageType.User.COMMAND, ChannelUserMessage.class, UUID.class), USER_GROUP(ChannelType.USER, MessageType.User.GROUP, ChannelUserMessage.class, UUID.class), USER_TEAM(ChannelType.USER, MessageType.User.TEAM, ChannelUserMessage.class, UUID.class), USER_STATISTICS(ChannelType.USER, MessageType.User.STATISTICS, ChannelUserMessage.class, UUID.class), USER_CUSTOM(ChannelType.USER, MessageType.User.CUSTOM, ChannelUserMessage.class, UUID.class), USER_SOUND(ChannelType.USER, MessageType.User.SOUND, ChannelUserMessage.class, UUID.class),
 
-    USER(ChannelType.SERVER, null, ChannelUserMessage.class, UUID.class),
+    USER(ChannelType.USER, null, ChannelUserMessage.class, UUID.class),
 
 
-    SUPPORT_TICKET_LOCK(ChannelType.SUPPORT, MessageType.Support.TICKET_LOCK, ChannelSupportMessage.class, Integer.class),
-    SUPPORT_SUBMIT(ChannelType.SUPPORT, MessageType.Support.SUBMIT, ChannelSupportMessage.class, Integer.class),
-    SUPPORT_REJECT(ChannelType.SUPPORT, MessageType.Support.REJECT, ChannelSupportMessage.class, Integer.class),
-    SUPPORT_ACCEPT(ChannelType.SUPPORT, MessageType.Support.ACCEPT, ChannelSupportMessage.class, Integer.class),
-    SUPPORT_CREATION(ChannelType.SUPPORT, MessageType.Support.CREATION, ChannelSupportMessage.class, Integer.class),
+    SUPPORT_TICKET_LOCK(ChannelType.SUPPORT, MessageType.Support.TICKET_LOCK, ChannelSupportMessage.class, Integer.class), SUPPORT_SUBMIT(ChannelType.SUPPORT, MessageType.Support.SUBMIT, ChannelSupportMessage.class, Integer.class), SUPPORT_REJECT(ChannelType.SUPPORT, MessageType.Support.REJECT, ChannelSupportMessage.class, Integer.class), SUPPORT_ACCEPT(ChannelType.SUPPORT, MessageType.Support.ACCEPT, ChannelSupportMessage.class, Integer.class), SUPPORT_CREATION(ChannelType.SUPPORT, MessageType.Support.CREATION, ChannelSupportMessage.class, Integer.class),
 
     SUPPORT(ChannelType.SUPPORT, null, ChannelSupportMessage.class, Integer.class),
 
