@@ -2,6 +2,7 @@ package de.timesnake.channel.util.message;
 
 import de.timesnake.library.basic.util.Status;
 
+import java.util.List;
 import java.util.Set;
 
 public abstract class MessageType<Value> {
@@ -191,6 +192,49 @@ public abstract class MessageType<Value> {
             super(name);
         }
     }
+
+    public abstract static class Discord<Value> extends MessageType<Value>{
+        public static final MessageType<List<String>> DESTROY_TEAMS = new MessageType<List<String>>("destroy_teams") {
+            @Override
+            public String valueToString(List<String> strings) {
+                return null;
+            }
+
+            @Override
+            public List<String> parseValue(String value) {
+                return null;
+            }
+        };
+        public static final MessageType<ChannelDiscordMessage.Allocation> MOVE_TEAMS = new MessageType<>("move_teams") {
+
+            @Override
+            public String valueToString(ChannelDiscordMessage.Allocation allocation) {
+                return allocation.toString();
+            }
+
+            @Override
+            public ChannelDiscordMessage.Allocation parseValue(String value) {
+                return new ChannelDiscordMessage.Allocation(value);
+            }
+        };
+
+        public static final Set<MessageType<?>> TYPES = Set.of(MOVE_TEAMS, DESTROY_TEAMS);
+
+        public static MessageType<?> valueOf(String name) {
+            if (name == null) return null;
+            for (MessageType<?> type : TYPES) {
+                if (type.getName().equals(name)) {
+                    return type;
+                }
+            }
+            return null;
+        }
+
+        public Discord(String name) {
+            super(name);
+        }
+    }
+
 
     private final String name;
 

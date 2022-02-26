@@ -56,6 +56,12 @@ public enum ListenerType {
     PING(ChannelType.PING, null, ChannelPingMessage.class, Void.class),
 
 
+    DISCORD_MOVE_TEAMS(ChannelType.DISCORD, MessageType.Discord.MOVE_TEAMS, ChannelDiscordMessage.class, String.class),
+    DISCORD_DESTROY_TEAMS(ChannelType.DISCORD, MessageType.Discord.DESTROY_TEAMS, ChannelDiscordMessage.class, String.class),
+
+
+    DISCORD(ChannelType.DISCORD, null, ChannelDiscordMessage.class, String.class),
+
     ALL(null, null, null, null);
 
 
