@@ -125,6 +125,8 @@ public abstract class ChannelServer implements Runnable {
                         msg = new ChannelGroupMessage<>(args);
                     } else if (ChannelType.SUPPORT.equals(type)) {
                         msg = new ChannelSupportMessage<>(args);
+                    } else if (ChannelType.DISCORD.equals(type)){
+                        msg = new ChannelDiscordMessage<>(args);
                     } else {
                         ChannelInfo.broadcastMessage("[Channel] Error while reading channel type");
                     }

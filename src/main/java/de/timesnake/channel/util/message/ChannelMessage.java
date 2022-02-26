@@ -12,7 +12,7 @@ public abstract class ChannelMessage<Identifier, Value> {
     protected Value value;
 
     public ChannelMessage(String... args) {
-        this.channelType = (ChannelType<Identifier>) ChannelType.valueOf(args[0]);;
+        this.channelType = (ChannelType<Identifier>) ChannelType.valueOf(args[0]);
         this.messageType = (MessageType<Value>) channelType.parseMessageType(args[1]);
         this.identifier = this.channelType.parseIdentifier(args[2]);
         this.value = this.messageType.parseValue(args[3]);

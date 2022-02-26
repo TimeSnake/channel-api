@@ -104,7 +104,24 @@ public abstract class ChannelType<Identifier> {
         }
     };
 
-    public static final List<ChannelType<?>> TYPES = List.of(USER, SERVER, LISTENER, GROUP, PING, SUPPORT);
+    public static final ChannelType<String> DISCORD = new ChannelType<String>("discord") {
+        @Override
+        public String identifierToString(String integer) {
+            return String.valueOf(integer);
+        }
+
+        @Override
+        public String parseIdentifier(String identifier) {
+            return identifier;
+        }
+
+        @Override
+        public MessageType<?> parseMessageType(String messageType) {
+            return MessageType.Discord.valueOf(messageType);
+        }
+    };
+
+    public static final List<ChannelType<?>> TYPES = List.of(USER, SERVER, LISTENER, GROUP, PING, SUPPORT, DISCORD);
 
     public static ChannelType<?> valueOf(String name) {
         for (ChannelType<?> type : TYPES) {
