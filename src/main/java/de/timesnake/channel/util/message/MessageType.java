@@ -2,6 +2,8 @@ package de.timesnake.channel.util.message;
 
 import de.timesnake.library.basic.util.Status;
 
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -195,14 +197,32 @@ public abstract class MessageType<Value> {
 
     public abstract static class Discord<Value> extends MessageType<Value>{
         public static final MessageType<List<String>> DESTROY_TEAMS = new MessageType<List<String>>("destroy_teams") {
+
+            private static final String DELIMITER = "#";
+
             @Override
             public String valueToString(List<String> strings) {
-                return null;
+                StringBuilder sb = new StringBuilder();
+
+                if(!strings.isEmpty()) {
+                    for (String team : strings) {
+                        sb.append(team);
+                        sb.append(DELIMITER);
+                    }
+
+                    sb.deleteCharAt(sb.length() - 1); // Remove last DELIMITER
+                }
+
+                return sb.toString();
             }
 
             @Override
             public List<String> parseValue(String value) {
-                return null;
+                List<String> res = new LinkedList<>();
+
+                Collections.addAll(res, value.split(DELIMITER));
+
+                return res;
             }
         };
         public static final MessageType<ChannelDiscordMessage.Allocation> MOVE_TEAMS = new MessageType<>("move_teams") {
