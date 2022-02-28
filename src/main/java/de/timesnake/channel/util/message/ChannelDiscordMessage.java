@@ -26,7 +26,7 @@ public class ChannelDiscordMessage<Value> extends ChannelMessage<String, Value> 
         private final Map<String, List<UUID>> uuidsByTeam;
 
         protected Allocation(String toParse) {
-            uuidsByTeam = new HashMap<>();
+            uuidsByTeam = new LinkedHashMap<>();
 
             for (String teamAllocation : toParse.split(TEAM_DELIMITER)) {
                 String[] values = teamAllocation.split(NAME_DELIMITER);
