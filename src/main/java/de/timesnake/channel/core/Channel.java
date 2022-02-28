@@ -101,9 +101,7 @@ public abstract class Channel extends ChannelServer implements de.timesnake.chan
     }
 
     public void removeListener(ChannelListener listener, ListenerType... types) {
-        Collection<ConcurrentHashMap<ChannelListener, ?>> listeners = this.listeners.entrySet().stream().filter(t ->
-                types.length == 0 || Arrays.stream(types).anyMatch(type ->
-                        t.getKey().equals(type.getTypeTuple()))).map(Map.Entry::getValue).collect(Collectors.toList());
+        Collection<ConcurrentHashMap<ChannelListener, ?>> listeners = this.listeners.entrySet().stream().filter(t -> types.length == 0 || Arrays.stream(types).anyMatch(type -> t.getKey().equals(type.getTypeTuple()))).map(Map.Entry::getValue).collect(Collectors.toList());
 
         for (ConcurrentHashMap<ChannelListener, ?> listenerMethods : listeners) {
             listenerMethods.remove(listener);

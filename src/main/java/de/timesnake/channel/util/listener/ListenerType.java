@@ -23,27 +23,21 @@ public enum ListenerType {
     SUPPORT(ChannelType.SUPPORT, null, ChannelSupportMessage.class, Integer.class),
 
 
-    LISTENER_SERVER_PORT(ChannelType.LISTENER, MessageType.Listener.SERVER_PORT, ChannelListenerMessage.class, Void.class),
-    LISTENER_SERVER_MESSAGE_TYPE(ChannelType.LISTENER, MessageType.Listener.SERVER_MESSAGE_TYPE, ChannelListenerMessage.class, MessageType.class),
-    LISTENER_REGISTER(ChannelType.LISTENER, MessageType.Listener.REGISTER, ChannelListenerMessage.class, Void.class),
-    LISTENER_UNREGISTER(ChannelType.LISTENER, MessageType.Listener.UNREGISTER, ChannelListenerMessage.class, Void.class),
+    LISTENER_SERVER_PORT(ChannelType.LISTENER, MessageType.Listener.SERVER_PORT, ChannelListenerMessage.class, Void.class), LISTENER_SERVER_MESSAGE_TYPE(ChannelType.LISTENER, MessageType.Listener.SERVER_MESSAGE_TYPE, ChannelListenerMessage.class, MessageType.class), LISTENER_REGISTER(ChannelType.LISTENER, MessageType.Listener.REGISTER, ChannelListenerMessage.class, Void.class), LISTENER_UNREGISTER(ChannelType.LISTENER, MessageType.Listener.UNREGISTER, ChannelListenerMessage.class, Void.class),
 
     LISTENER(ChannelType.LISTENER, null, ChannelListenerMessage.class, Void.class),
 
 
-    GROUP_ALIAS(ChannelType.GROUP, MessageType.Group.ALIAS, ChannelGroupMessage.class, String.class),
-    GROUP_PERMISSION(ChannelType.GROUP, MessageType.Group.PERMISSION, ChannelGroupMessage.class, String.class),
+    GROUP_ALIAS(ChannelType.GROUP, MessageType.Group.ALIAS, ChannelGroupMessage.class, String.class), GROUP_PERMISSION(ChannelType.GROUP, MessageType.Group.PERMISSION, ChannelGroupMessage.class, String.class),
 
     GROUP(ChannelType.GROUP, null, ChannelGroupMessage.class, String.class),
 
-    PING_PING(ChannelType.PING, MessageType.Ping.PING, ChannelPingMessage.class, Void.class),
-    PING_PONG(ChannelType.PING, MessageType.Ping.PONG, ChannelPingMessage.class, Void.class),
+    PING_PING(ChannelType.PING, MessageType.Ping.PING, ChannelPingMessage.class, Void.class), PING_PONG(ChannelType.PING, MessageType.Ping.PONG, ChannelPingMessage.class, Void.class),
 
     PING(ChannelType.PING, null, ChannelPingMessage.class, Void.class),
 
 
-    DISCORD_MOVE_TEAMS(ChannelType.DISCORD, MessageType.Discord.MOVE_TEAMS, ChannelDiscordMessage.class, String.class),
-    DISCORD_DESTROY_TEAMS(ChannelType.DISCORD, MessageType.Discord.DESTROY_TEAMS, ChannelDiscordMessage.class, String.class),
+    DISCORD_MOVE_TEAMS(ChannelType.DISCORD, MessageType.Discord.MOVE_TEAMS, ChannelDiscordMessage.class, String.class), DISCORD_DESTROY_TEAMS(ChannelType.DISCORD, MessageType.Discord.DESTROY_TEAMS, ChannelDiscordMessage.class, String.class),
 
 
     DISCORD(ChannelType.DISCORD, null, ChannelDiscordMessage.class, String.class),
@@ -58,8 +52,7 @@ public enum ListenerType {
     private final Class<? extends ChannelMessage> messageClass;
     private final Class<?> filterClass;
 
-    ListenerType(ChannelType<?> channelType, MessageType<?> messageType, Class<? extends ChannelMessage> messageClass,
-                 Class<?> filterClass) {
+    ListenerType(ChannelType<?> channelType, MessageType<?> messageType, Class<? extends ChannelMessage> messageClass, Class<?> filterClass) {
         this.channelType = channelType;
         this.messageType = messageType;
         this.typeTuple = new Tuple<>(this.channelType, this.messageType);

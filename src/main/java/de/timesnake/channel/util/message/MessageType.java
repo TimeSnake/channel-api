@@ -197,7 +197,7 @@ public abstract class MessageType<Value> {
         }
     }
 
-    public abstract static class Discord<Value> extends MessageType<Value>{
+    public abstract static class Discord<Value> extends MessageType<Value> {
         public static final MessageType<List<String>> DESTROY_TEAMS = new MessageType<List<String>>("destroy_teams") {
 
             private static final String DELIMITER = "#";
@@ -206,7 +206,7 @@ public abstract class MessageType<Value> {
             public String valueToString(List<String> strings) {
                 StringBuilder sb = new StringBuilder();
 
-                if(!strings.isEmpty()) {
+                if (!strings.isEmpty()) {
                     for (String team : strings) {
                         sb.append(team);
                         sb.append(DELIMITER);
