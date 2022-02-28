@@ -222,7 +222,9 @@ public abstract class MessageType<Value> {
             public List<String> parseValue(String value) {
                 List<String> res = new LinkedList<>();
 
-                Collections.addAll(res, value.split(DELIMITER));
+                if (value != null && !value.equals("")) {
+                    Collections.addAll(res, value.split(DELIMITER));
+                }
 
                 return res;
             }
