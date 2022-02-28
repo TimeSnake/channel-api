@@ -15,7 +15,11 @@ public abstract class ChannelMessage<Identifier, Value> {
         this.channelType = (ChannelType<Identifier>) ChannelType.valueOf(args[0]);
         this.messageType = (MessageType<Value>) channelType.parseMessageType(args[1]);
         this.identifier = this.channelType.parseIdentifier(args[2]);
-        this.value = this.messageType.parseValue(args[3]);
+        if (args.length >= 4) {
+            this.value = this.messageType.parseValue(args[3]);
+        } else {
+            this.value = this.messageType.parseValue("");
+        }
     }
 
     public ChannelMessage(ChannelType<Identifier> channelType, Identifier identifier, MessageType<Value> messageType, Value value) {
