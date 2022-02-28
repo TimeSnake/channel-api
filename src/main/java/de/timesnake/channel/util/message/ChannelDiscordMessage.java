@@ -21,7 +21,7 @@ public class ChannelDiscordMessage<Value> extends ChannelMessage<String, Value> 
 
         // Example team: Red.UUID1.UUID2.UUID3#Blue.UUID4.UUID5#Spectator
         private static final String TEAM_DELIMITER = "#";
-        private static final String NAME_DELIMITER = ".";
+        private static final String NAME_DELIMITER = "\\.";
 
         private final Map<String, List<UUID>> uuidsByTeam;
 
