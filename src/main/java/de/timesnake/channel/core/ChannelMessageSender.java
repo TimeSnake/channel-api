@@ -12,11 +12,10 @@ public class ChannelMessageSender implements Runnable {
     private Socket socket;
     private boolean connected = true;
 
-    public ChannelMessageSender(int port, String message) {
-        port = port + Channel.ADD;
+    public ChannelMessageSender(Host host, String message) {
         this.message = message;
         try {
-            this.socket = new Socket("localhost", port);
+            this.socket = new Socket(host.getHostname(), host.getPort());
         } catch (ConnectException e) {
             connected = false;
         } catch (IOException e) {

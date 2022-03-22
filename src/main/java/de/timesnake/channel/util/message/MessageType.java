@@ -134,10 +134,15 @@ public abstract class MessageType<Value> {
                 return value != null ? Server.valueOf(value) : null;
             }
         };
-        public static final MessageType<Void> REGISTER = new MessageTypeVoid("register");
-        public static final MessageType<Void> UNREGISTER = new MessageTypeVoid("unregister");
 
-        public static final Set<MessageType<?>> TYPES = Set.of(SERVER_PORT, SERVER_MESSAGE_TYPE, REGISTER, UNREGISTER);
+        public static final MessageType<Integer> REGISTER_SERVER = new MessageTypeInteger("register_server");
+        public static final MessageType<Integer> UNREGISTER_SERVER = new MessageTypeInteger("unregister_server");
+
+        public static final MessageType<Void> REGISTER_HOST = new MessageTypeVoid("register_host");
+        public static final MessageType<Void> UNREGISTER_HOST = new MessageTypeVoid("unregister_host");
+
+        public static final Set<MessageType<?>> TYPES = Set.of(SERVER_PORT, SERVER_MESSAGE_TYPE, REGISTER_SERVER,
+                UNREGISTER_SERVER, REGISTER_HOST, UNREGISTER_HOST);
 
         public static MessageType<?> valueOf(String name) {
             for (MessageType<?> type : TYPES) {

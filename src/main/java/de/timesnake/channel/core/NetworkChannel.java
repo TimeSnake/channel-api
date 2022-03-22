@@ -17,7 +17,8 @@ public class NetworkChannel {
 
     public static void stop() {
         if (!channel.getProxyPort().equals(channel.getServerPort())) {
-            channel.sendMessageToProxy(new ChannelListenerMessage<>(channel.getServerPort(), MessageType.Listener.UNREGISTER));
+            channel.sendMessageToProxy(new ChannelListenerMessage<>(NetworkChannel.getChannel().getSelf(),
+                    MessageType.Listener.UNREGISTER_SERVER, channel.getServerPort()));
         }
         if (thread.isAlive()) {
             thread.interrupt();

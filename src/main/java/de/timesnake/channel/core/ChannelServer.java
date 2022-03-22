@@ -8,36 +8,46 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
 
+/**
+ * This class manages the communication with other sockets
+ */
 public abstract class ChannelServer implements Runnable {
 
     public static final Integer ADD = 10000;
 
-    protected static final String SERVER_IP = "localhost";
+    protected static final String LISTEN_IP = "0.0.0.0";
+    protected static final String SERVER_IP = "127.0.0.1";
 
     protected final Thread mainThread;
 
-    protected Integer serverPort;
-    protected Integer channelServerPort;
-    protected Integer proxyPort;
+    protected final Integer serverPort;
+    protected final Host self;
 
+    protected final Integer proxyPort;
+    protected final Host proxy;
+
+    // stash until server is registered
     protected boolean serverMessageServersRegistered = false;
     protected List<ChannelServerMessage<?>> serverMessages = new LinkedList<>();
 
+    // Already send server messages
     protected List<Integer> sendListenerPorts = new LinkedList<>();
-
     protected boolean sendListenerMessageTypeAll = false;
     protected List<MessageType<?>> sendListenerMessageTypes = new LinkedList<>();
 
     /**
-     * Only for servers, which interested
+     * Only for servers, which are interested
      */
-    protected HashMap<Integer, Set<MessageType<?>>> receiverServerListeners = new HashMap<>();
+    protected HashMap<Host, Set<MessageType<?>>> receiverServerListeners = new HashMap<>();
 
-    protected ChannelServer(Thread mainThread, int serverPort, int proxyPort) {
+    protected ChannelServer(Thread mainThread, int serverPort, int proxy) {
         this.mainThread = mainThread;
+
         this.serverPort = serverPort;
-        this.channelServerPort = serverPort + Channel.ADD;
-        this.proxyPort = proxyPort;
+        this.self = new Host(SERVER_IP, serverPort + Channel.ADD);
+
+        this.proxyPort = proxy;
+        this.proxy = new Host(SERVER_IP, proxy + Channel.ADD);
     }
 
     @Override
@@ -51,7 +61,7 @@ public abstract class ChannelServer implements Runnable {
 
     @SuppressWarnings("resource")
     private void startServer() throws Exception {
-        ServerSocket serverSocket = new ServerSocket(channelServerPort, 100, InetAddress.getByName(SERVER_IP));
+        ServerSocket serverSocket = new ServerSocket(this.self.getPort(), 100, InetAddress.getByName(LISTEN_IP));
 
         while (true) {
             final Socket activeSocket = serverSocket.accept();
@@ -61,18 +71,18 @@ public abstract class ChannelServer implements Runnable {
     }
 
     protected void addServerListener(ChannelListenerMessage<?> msg) {
-        Integer port = msg.getSenderPort();
+        Host senderHost = msg.getSenderHost();
 
         if (msg.getMessageType().equals(MessageType.Listener.SERVER_PORT)) {
-            this.receiverServerListeners.put(port, null);
+            this.receiverServerListeners.put(senderHost, null);
         } else if (msg.getMessageType().equals(MessageType.Listener.SERVER_MESSAGE_TYPE)) {
-            if (receiverServerListeners.containsKey(port)) {
-                Set<MessageType<?>> typeSet = receiverServerListeners.get(msg.getSenderPort());
+            if (receiverServerListeners.containsKey(senderHost)) {
+                Set<MessageType<?>> typeSet = receiverServerListeners.get(msg.getSenderHost());
                 if (typeSet != null) {
                     if (msg.getValue() != null) {
                         typeSet.add(((MessageType<?>) msg.getValue()));
                     } else {
-                        this.receiverServerListeners.put(msg.getSenderPort(), null);
+                        this.receiverServerListeners.put(msg.getSenderHost(), null);
                     }
                 }
             } else {
@@ -84,7 +94,7 @@ public abstract class ChannelServer implements Runnable {
                     typeSet = null;
                 }
 
-                receiverServerListeners.put(port, typeSet);
+                receiverServerListeners.put(senderHost, typeSet);
             }
         }
         ChannelInfo.broadcastMessage("Server listener added");
@@ -131,7 +141,9 @@ public abstract class ChannelServer implements Runnable {
                         ChannelInfo.broadcastMessage("[Channel] Error while reading channel type");
                     }
 
-                    this.handleMessage(msg);
+                    if (msg != null) {
+                        this.handleMessage(msg);
+                    }
                 });
 
             }
@@ -145,20 +157,20 @@ public abstract class ChannelServer implements Runnable {
     public void sendMessage(ChannelMessage<?, ?> message) {
         if (message instanceof ChannelServerMessage) {
             if (serverMessageServersRegistered) {
-                for (Map.Entry<Integer, Set<MessageType<?>>> entry : this.receiverServerListeners.entrySet()) {
+                for (Map.Entry<Host, Set<MessageType<?>>> entry : this.receiverServerListeners.entrySet()) {
                     Set<MessageType<?>> typeSet = entry.getValue();
-                    Integer port = entry.getKey();
+                    Host host = entry.getKey();
                     if (typeSet == null || typeSet.isEmpty()) {
-                        this.sendMessage(port, message);
+                        this.sendMessage(host, message);
                     } else if (typeSet.contains(message.getMessageType())) {
-                        this.sendMessage(port, message);
+                        this.sendMessage(host, message);
                     }
                 }
             } else {
                 this.serverMessages.add((ChannelServerMessage<?>) message);
             }
         }
-        if (!this.proxyPort.equals(this.serverPort)) {
+        if (!this.proxy.equals(this.self)) {
             this.sendMessageToProxy(message);
         }
     }
@@ -167,39 +179,38 @@ public abstract class ChannelServer implements Runnable {
     public void sendMessageSynchronized(ChannelMessage<?, ?> message) {
         if (message instanceof ChannelServerMessage) {
             if (serverMessageServersRegistered) {
-                for (Map.Entry<Integer, Set<MessageType<?>>> entry : this.receiverServerListeners.entrySet()) {
+                for (Map.Entry<Host, Set<MessageType<?>>> entry : this.receiverServerListeners.entrySet()) {
                     Set<MessageType<?>> typeSet = entry.getValue();
-                    Integer port = entry.getKey();
+                    Host host = entry.getKey();
                     if (typeSet == null || typeSet.isEmpty()) {
-                        this.sendMessageSynchronized(port, message);
+                        this.sendMessageSynchronized(host, message);
                     } else if (typeSet.contains(message.getMessageType())) {
-                        this.sendMessageSynchronized(port, message);
+                        this.sendMessageSynchronized(host, message);
                     }
                 }
             } else {
                 this.serverMessages.add((ChannelServerMessage<?>) message);
             }
         }
-        if (!this.proxyPort.equals(this.serverPort)) {
-            this.sendMessageSynchronized(proxyPort, message);
+        if (!this.proxy.equals(this.self)) {
+            this.sendMessageSynchronized(proxy, message);
         }
     }
 
     public void sendMessageToProxy(ChannelMessage<?, ?> message) {
-        sendMessage(proxyPort, message);
+        sendMessage(proxy, message);
     }
 
-    public final void sendMessage(int port, ChannelMessage<?, ?> message) {
-        Thread sender = new Thread(new ChannelMessageSender(port, message.toStream()));
+    public final void sendMessage(Host host, ChannelMessage<?, ?> message) {
+        Thread sender = new Thread(new ChannelMessageSender(host, message.toStream()));
         sender.start();
-        ChannelInfo.broadcastMessage("Message send: " + message.toStream() + " to " + port);
+        ChannelInfo.broadcastMessage("Message send: " + message.toStream() + " to " + host);
     }
 
-    public final void sendMessageSynchronized(int port, ChannelMessage<?, ?> message) {
-        int channelPort = port + Channel.ADD;
+    public final void sendMessageSynchronized(Host host, ChannelMessage<?, ?> message) {
         Socket socket = null;
         try {
-            socket = new Socket(SERVER_IP, channelPort);
+            socket = new Socket(host.getHostname(), host.getPort());
         } catch (IOException ignored) {
         }
 
@@ -214,7 +225,7 @@ public abstract class ChannelServer implements Runnable {
             } catch (IOException ignored) {
             }
         }
-        ChannelInfo.broadcastMessage("Message send: " + message.toStream() + " to " + port);
+        ChannelInfo.broadcastMessage("Message send: " + message.toStream() + " to " + host);
     }
 
     public abstract void runSync(SyncRun syncRun);
@@ -224,20 +235,20 @@ public abstract class ChannelServer implements Runnable {
     protected abstract void handlePingMessage(ChannelPingMessage msg);
 
     protected synchronized void handleListenerMessage(ChannelListenerMessage<?> msg) {
-        if (msg.getMessageType().equals(MessageType.Listener.SERVER_MESSAGE_TYPE) || (msg.getMessageType().equals(MessageType.Listener.SERVER_PORT) && !msg.getSenderPort().equals(this.serverPort))) {
+        if (msg.getMessageType().equals(MessageType.Listener.SERVER_MESSAGE_TYPE) || (msg.getMessageType().equals(MessageType.Listener.SERVER_PORT) && !msg.getSenderHost().equals(this.self))) {
             this.addServerListener(msg);
-        } else if (msg.getMessageType().equals(MessageType.Listener.REGISTER) && msg.getSenderPort().equals(this.proxyPort)) {
+        } else if (msg.getMessageType().equals(MessageType.Listener.REGISTER_SERVER) && msg.getSenderHost().equals(this.proxy)) {
             this.serverMessageServersRegistered = true;
             for (ChannelServerMessage<?> serverMsg : serverMessages) {
                 this.sendMessage(serverMsg);
             }
             ChannelInfo.broadcastMessage("Receiving of listeners finished");
-        } else if (msg.getMessageType().equals(MessageType.Listener.UNREGISTER)) {
-            Integer port = msg.getSenderPort();
+        } else if (msg.getMessageType().equals(MessageType.Listener.UNREGISTER_SERVER)) {
+            Host host = msg.getSenderHost();
 
-            if (port != null) {
-                this.receiverServerListeners.remove(port);
-                ChannelInfo.broadcastMessage("Removed server-listener " + port);
+            if (host != null) {
+                this.receiverServerListeners.remove(host);
+                ChannelInfo.broadcastMessage("Removed server-listener " + host);
             }
         }
     }

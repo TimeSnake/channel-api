@@ -39,15 +39,15 @@ public abstract class ChannelType<Identifier> {
             return MessageType.Server.valueOf(messageType);
         }
     };
-    public static final ChannelType<Integer> LISTENER = new ChannelType<>("listener") {
+    public static final ChannelType<Host> LISTENER = new ChannelType<>("listener") {
         @Override
-        public String identifierToString(Integer integer) {
-            return String.valueOf(integer);
+        public String identifierToString(Host host) {
+            return host.toString();
         }
 
         @Override
-        public Integer parseIdentifier(String identifier) {
-            return Integer.parseInt(identifier);
+        public Host parseIdentifier(String identifier) {
+            return Host.parseHost(identifier);
         }
 
         @Override

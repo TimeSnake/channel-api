@@ -20,7 +20,7 @@ public class ChannelPingMessage extends ChannelMessage<Integer, Void> {
     }
 
     @Override
-    public MessageType getMessageType() {
+    public MessageType<Void> getMessageType() {
         return null;
     }
 }
