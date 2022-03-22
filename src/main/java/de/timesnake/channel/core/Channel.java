@@ -13,14 +13,15 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+/**
+ * This class manages all local channel listeners
+ */
 public abstract class Channel extends ChannelServer implements de.timesnake.channel.util.Channel {
 
     protected ConcurrentHashMap<Tuple<ChannelType<?>, MessageType<?>>, ConcurrentHashMap<ChannelListener, Set<Tuple<ChannelMessageFilter<?>, Method>>>> listeners = new ConcurrentHashMap<>();
 
     public Channel(Thread mainThread, Integer serverPort, Integer proxyPort) {
         super(mainThread, serverPort, proxyPort);
-        this.serverPort = serverPort;
-        this.proxyPort = proxyPort;
     }
 
     public void addListener(ChannelListener listener) {
@@ -73,7 +74,8 @@ public abstract class Channel extends ChannelServer implements de.timesnake.chan
 
                                     this.sendListenerPorts.add(port);
 
-                                    this.sendMessage(new ChannelListenerMessage<>(this.serverPort, MessageType.Listener.SERVER_PORT, port));
+                                    this.sendMessage(new ChannelListenerMessage<>(this.self,
+                                            MessageType.Listener.SERVER_PORT, port));
                                 }
                             } else {
                                 if (this.sendListenerMessageTypeAll || this.sendListenerMessageTypes.contains(type.getMessageType())) {
@@ -86,7 +88,8 @@ public abstract class Channel extends ChannelServer implements de.timesnake.chan
                                     this.sendListenerMessageTypes.add(type.getMessageType());
                                 }
 
-                                this.sendMessage(new ChannelListenerMessage<>(this.serverPort, MessageType.Listener.SERVER_MESSAGE_TYPE, type.getMessageType()));
+                                this.sendMessage(new ChannelListenerMessage<>(this.self,
+                                        MessageType.Listener.SERVER_MESSAGE_TYPE, type.getMessageType()));
                             }
                         }
 
@@ -101,11 +104,20 @@ public abstract class Channel extends ChannelServer implements de.timesnake.chan
     }
 
     public void removeListener(ChannelListener listener, ListenerType... types) {
-        Collection<ConcurrentHashMap<ChannelListener, ?>> listeners = this.listeners.entrySet().stream().filter(t -> types.length == 0 || Arrays.stream(types).anyMatch(type -> t.getKey().equals(type.getTypeTuple()))).map(Map.Entry::getValue).collect(Collectors.toList());
+        Collection<ConcurrentHashMap<ChannelListener, ?>> listeners =
+                this.listeners.entrySet().stream().filter(t -> types.length == 0 || Arrays.stream(types).anyMatch(type -> t.getKey().equals(type.getTypeTuple()))).map(Map.Entry::getValue).collect(Collectors.toList());
 
         for (ConcurrentHashMap<ChannelListener, ?> listenerMethods : listeners) {
             listenerMethods.remove(listener);
         }
+    }
+
+    public Host getSelf() {
+        return self;
+    }
+
+    public Host getProxy() {
+        return proxy;
     }
 
     public Integer getServerPort() {
