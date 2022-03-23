@@ -6,7 +6,9 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.*;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * This class manages the communication with other sockets
@@ -28,17 +30,17 @@ public abstract class ChannelServer implements Runnable {
 
     // stash until server is registered
     protected boolean serverMessageServersRegistered = false;
-    protected List<ChannelServerMessage<?>> serverMessages = new LinkedList<>();
+    protected Set<ChannelServerMessage<?>> serverMessages = ConcurrentHashMap.newKeySet();
 
     // Already send server messages
-    protected List<Integer> sendListenerPorts = new LinkedList<>();
+    protected Set<Integer> sendListenerPorts = ConcurrentHashMap.newKeySet();
     protected boolean sendListenerMessageTypeAll = false;
-    protected List<MessageType<?>> sendListenerMessageTypes = new LinkedList<>();
+    protected Set<MessageType<?>> sendListenerMessageTypes = ConcurrentHashMap.newKeySet();
 
     /**
      * Only for servers, which are interested
      */
-    protected HashMap<Host, Set<MessageType<?>>> receiverServerListeners = new HashMap<>();
+    protected ConcurrentHashMap<Host, Set<MessageType<?>>> receiverServerListeners = new ConcurrentHashMap<>();
 
     protected ChannelServer(Thread mainThread, int serverPort, int proxy) {
         this.mainThread = mainThread;
@@ -74,7 +76,7 @@ public abstract class ChannelServer implements Runnable {
         Host senderHost = msg.getSenderHost();
 
         if (msg.getMessageType().equals(MessageType.Listener.SERVER_PORT)) {
-            this.receiverServerListeners.put(senderHost, null);
+            this.receiverServerListeners.put(senderHost, ConcurrentHashMap.newKeySet());
         } else if (msg.getMessageType().equals(MessageType.Listener.SERVER_MESSAGE_TYPE)) {
             if (receiverServerListeners.containsKey(senderHost)) {
                 Set<MessageType<?>> typeSet = receiverServerListeners.get(msg.getSenderHost());
@@ -86,15 +88,13 @@ public abstract class ChannelServer implements Runnable {
                     }
                 }
             } else {
-                Set<MessageType<?>> typeSet = new HashSet<>();
+                Set<MessageType<?>> typeSet = ConcurrentHashMap.newKeySet();
 
                 if (msg.getValue() != null) {
                     typeSet.add(((MessageType<?>) msg.getValue()));
-                } else {
-                    typeSet = null;
                 }
 
-                receiverServerListeners.put(senderHost, typeSet);
+                this.receiverServerListeners.put(senderHost, typeSet);
             }
         }
         ChannelInfo.broadcastMessage("Server listener added");
@@ -117,10 +117,7 @@ public abstract class ChannelServer implements Runnable {
                 }
 
                 if (ChannelType.LISTENER.equals(type)) {
-                    this.runSync(() -> {
-                        ChannelListenerMessage<?> listenerMessage = new ChannelListenerMessage<>(args);
-                        this.handleListenerMessage(listenerMessage);
-                    });
+                    this.runSync(() -> this.handleListenerMessage(new ChannelListenerMessage<>(args)));
                     continue;
                 }
 
@@ -160,9 +157,7 @@ public abstract class ChannelServer implements Runnable {
                 for (Map.Entry<Host, Set<MessageType<?>>> entry : this.receiverServerListeners.entrySet()) {
                     Set<MessageType<?>> typeSet = entry.getValue();
                     Host host = entry.getKey();
-                    if (typeSet == null || typeSet.isEmpty()) {
-                        this.sendMessage(host, message);
-                    } else if (typeSet.contains(message.getMessageType())) {
+                    if (typeSet == null || typeSet.isEmpty() || typeSet.contains(message.getMessageType())) {
                         this.sendMessage(host, message);
                     }
                 }
@@ -221,11 +216,11 @@ public abstract class ChannelServer implements Runnable {
                     socketWriter.write(message.toStream());
                     socketWriter.flush();
                     socket.close();
+                    ChannelInfo.broadcastMessage("Message send: " + message.toStream() + " to " + host);
                 }
             } catch (IOException ignored) {
             }
         }
-        ChannelInfo.broadcastMessage("Message send: " + message.toStream() + " to " + host);
     }
 
     public abstract void runSync(SyncRun syncRun);
@@ -235,7 +230,8 @@ public abstract class ChannelServer implements Runnable {
     protected abstract void handlePingMessage(ChannelPingMessage msg);
 
     protected synchronized void handleListenerMessage(ChannelListenerMessage<?> msg) {
-        if (msg.getMessageType().equals(MessageType.Listener.SERVER_MESSAGE_TYPE) || (msg.getMessageType().equals(MessageType.Listener.SERVER_PORT) && !msg.getSenderHost().equals(this.self))) {
+        if (msg.getMessageType().equals(MessageType.Listener.SERVER_MESSAGE_TYPE)
+                || (msg.getMessageType().equals(MessageType.Listener.SERVER_PORT) && !msg.getSenderHost().equals(this.self))) {
             this.addServerListener(msg);
         } else if (msg.getMessageType().equals(MessageType.Listener.REGISTER_SERVER) && msg.getSenderHost().equals(this.proxy)) {
             this.serverMessageServersRegistered = true;

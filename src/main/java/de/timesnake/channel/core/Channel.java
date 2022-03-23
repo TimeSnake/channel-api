@@ -9,7 +9,10 @@ import de.timesnake.library.basic.util.Tuple;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -18,7 +21,8 @@ import java.util.stream.Collectors;
  */
 public abstract class Channel extends ChannelServer implements de.timesnake.channel.util.Channel {
 
-    protected ConcurrentHashMap<Tuple<ChannelType<?>, MessageType<?>>, ConcurrentHashMap<ChannelListener, Set<Tuple<ChannelMessageFilter<?>, Method>>>> listeners = new ConcurrentHashMap<>();
+    protected ConcurrentHashMap<Tuple<ChannelType<?>, MessageType<?>>, ConcurrentHashMap<ChannelListener,
+            Set<Tuple<ChannelMessageFilter<?>, Method>>>> listeners = new ConcurrentHashMap<>();
 
     public Channel(Thread mainThread, Integer serverPort, Integer proxyPort) {
         super(mainThread, serverPort, proxyPort);
@@ -49,7 +53,8 @@ public abstract class Channel extends ChannelServer implements de.timesnake.chan
                             throw new InconsistentChannelListenerException("invalid message type");
                         }
 
-                        Set<Tuple<ChannelMessageFilter<?>, Method>> listenerMethods = this.listeners.computeIfAbsent(type.getTypeTuple(), k -> new ConcurrentHashMap<>()).computeIfAbsent(listener, k -> new HashSet<>());
+                        Set<Tuple<ChannelMessageFilter<?>, Method>> listenerMethods =
+                                this.listeners.computeIfAbsent(type.getTypeTuple(), k -> new ConcurrentHashMap<>()).computeIfAbsent(listener, k -> ConcurrentHashMap.newKeySet());
 
                         if (annotation.filtered() && filter != null) {
                             listenerMethods.add(new Tuple<>(filter, method));
@@ -105,7 +110,8 @@ public abstract class Channel extends ChannelServer implements de.timesnake.chan
 
     public void removeListener(ChannelListener listener, ListenerType... types) {
         Collection<ConcurrentHashMap<ChannelListener, ?>> listeners =
-                this.listeners.entrySet().stream().filter(t -> types.length == 0 || Arrays.stream(types).anyMatch(type -> t.getKey().equals(type.getTypeTuple()))).map(Map.Entry::getValue).collect(Collectors.toList());
+                this.listeners.entrySet().stream().filter(t -> types.length == 0
+                || Arrays.stream(types).anyMatch(type -> t.getKey().equals(type.getTypeTuple()))).map(Map.Entry::getValue).collect(Collectors.toList());
 
         for (ConcurrentHashMap<ChannelListener, ?> listenerMethods : listeners) {
             listenerMethods.remove(listener);
@@ -131,7 +137,9 @@ public abstract class Channel extends ChannelServer implements de.timesnake.chan
     @Override
     protected void handleMessage(ChannelMessage<?, ?> msg) {
 
-        Set<Map.Entry<ChannelListener, Set<Tuple<ChannelMessageFilter<?>, Method>>>> set = this.listeners.getOrDefault(new Tuple<>(msg.getChannelType(), msg.getMessageType()), new ConcurrentHashMap<>()).entrySet();
+        Set<Map.Entry<ChannelListener, Set<Tuple<ChannelMessageFilter<?>, Method>>>> set =
+                this.listeners.getOrDefault(new Tuple<>(msg.getChannelType(), msg.getMessageType()),
+                        new ConcurrentHashMap<>()).entrySet();
         set.addAll(this.listeners.getOrDefault(new Tuple<>(msg.getChannelType(), null), new ConcurrentHashMap<>()).entrySet());
         set.addAll(this.listeners.getOrDefault(new Tuple<>(null, null), new ConcurrentHashMap<>()).entrySet());
 
