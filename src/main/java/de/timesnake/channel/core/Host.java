@@ -34,4 +34,12 @@ public class Host {
     public int hashCode() {
         return Objects.hash(this.hostname, this.port);
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null) return false;
+        if (o == this) return true;
+        if (!(o instanceof Host)) return false;
+        return this.hostname.equals(((Host) o).getHostname()) && this.port == ((Host) o).getPort();
+    }
 }
