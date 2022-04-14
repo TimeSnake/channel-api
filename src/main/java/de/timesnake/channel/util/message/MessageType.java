@@ -160,8 +160,8 @@ public abstract class MessageType<Value> {
 
     public abstract static class Group<Value> extends MessageType<Value> {
 
-        public static final MessageType<String> ALIAS = new MessageTypeString("alias");
-        public static final MessageType<String> PERMISSION = new MessageTypeString("permission");
+        public static final MessageType<Void> ALIAS = new MessageTypeVoid("alias");
+        public static final MessageType<Void> PERMISSION = new MessageTypeVoid("permission");
 
         public static final Set<MessageType<?>> TYPES = Set.of(ALIAS, PERMISSION);
 
@@ -203,7 +203,7 @@ public abstract class MessageType<Value> {
     }
 
     public abstract static class Discord<Value> extends MessageType<Value> {
-        public static final MessageType<List<String>> DESTROY_TEAMS = new MessageType<List<String>>("destroy_teams") {
+        public static final MessageType<List<String>> DESTROY_TEAMS = new MessageType<>("destroy_teams") {
 
             private static final String DELIMITER = "#";
 
