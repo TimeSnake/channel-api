@@ -141,8 +141,10 @@ public abstract class MessageType<Value> {
         public static final MessageType<Void> REGISTER_HOST = new MessageTypeVoid("register_host");
         public static final MessageType<Void> UNREGISTER_HOST = new MessageTypeVoid("unregister_host");
 
+        public static final MessageType<Void> CLOSE_SOCKET = new MessageTypeVoid("close_socket");
+
         public static final Set<MessageType<?>> TYPES = Set.of(SERVER_PORT, SERVER_MESSAGE_TYPE, REGISTER_SERVER,
-                UNREGISTER_SERVER, REGISTER_HOST, UNREGISTER_HOST);
+                UNREGISTER_SERVER, REGISTER_HOST, UNREGISTER_HOST, CLOSE_SOCKET);
 
         public static MessageType<?> valueOf(String name) {
             for (MessageType<?> type : TYPES) {

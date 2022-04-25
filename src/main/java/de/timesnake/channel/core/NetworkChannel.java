@@ -12,7 +12,7 @@ public class NetworkChannel {
         NetworkChannel.channel = channel;
         thread = new Thread(channel);
         thread.start();
-        System.out.println("[Channel] Network-channel started");
+        channel.logInfo("Network-channel started", true);
     }
 
     public static void stop() {
@@ -22,7 +22,7 @@ public class NetworkChannel {
         }
         if (thread.isAlive()) {
             thread.interrupt();
-            System.out.println("[Channel] Network-channel stopped");
+            channel.logInfo("[Channel] Network-channel stopped", true);
         }
     }
 

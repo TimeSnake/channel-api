@@ -2,7 +2,10 @@ package de.timesnake.channel.core;
 
 import de.timesnake.channel.util.message.*;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -28,6 +31,9 @@ public abstract class ChannelServer implements Runnable {
     protected final Integer proxyPort;
     protected final Host proxy;
 
+
+    protected ConcurrentHashMap<Host, Socket> socketByHost = new ConcurrentHashMap<>();
+
     // stash until server is registered
     protected boolean serverMessageServersRegistered = false;
     protected Set<ChannelServerMessage<?>> serverMessages = ConcurrentHashMap.newKeySet();
@@ -42,7 +48,11 @@ public abstract class ChannelServer implements Runnable {
      */
     protected ConcurrentHashMap<Host, Set<MessageType<?>>> receiverServerListeners = new ConcurrentHashMap<>();
 
-    protected ChannelServer(Thread mainThread, int serverPort, int proxy) {
+
+    protected ChannelLogger logger;
+
+
+    protected ChannelServer(Thread mainThread, int serverPort, int proxy, ChannelLogger logger) {
         this.mainThread = mainThread;
 
         this.serverPort = serverPort;
@@ -50,6 +60,8 @@ public abstract class ChannelServer implements Runnable {
 
         this.proxyPort = proxy;
         this.proxy = new Host(SERVER_IP, proxy + Channel.ADD);
+
+        this.logger = logger;
     }
 
     @Override
@@ -57,7 +69,7 @@ public abstract class ChannelServer implements Runnable {
         try {
             this.startServer();
         } catch (Exception e) {
-            System.out.println("[Channel] Error while starting channel-server");
+            this.logger.logWarning("Error while starting channel-server");
         }
     }
 
@@ -80,12 +92,10 @@ public abstract class ChannelServer implements Runnable {
         } else if (msg.getMessageType().equals(MessageType.Listener.SERVER_MESSAGE_TYPE)) {
             if (receiverServerListeners.containsKey(senderHost)) {
                 Set<MessageType<?>> typeSet = receiverServerListeners.get(msg.getSenderHost());
-                if (typeSet != null) {
-                    if (msg.getValue() != null) {
-                        typeSet.add(((MessageType<?>) msg.getValue()));
-                    } else {
-                        this.receiverServerListeners.put(msg.getSenderHost(), null);
-                    }
+                if (!typeSet.isEmpty() && msg.getValue() != null) {
+                    typeSet.add(((MessageType<?>) msg.getValue()));
+                } else {
+                    this.receiverServerListeners.put(msg.getSenderHost(), ConcurrentHashMap.newKeySet());
                 }
             } else {
                 Set<MessageType<?>> typeSet = ConcurrentHashMap.newKeySet();
@@ -97,17 +107,18 @@ public abstract class ChannelServer implements Runnable {
                 this.receiverServerListeners.put(senderHost, typeSet);
             }
         }
-        ChannelInfo.broadcastMessage("Server listener added");
+        this.logger.logInfo("Server listener added");
     }
 
     private void handleMessage(Socket socket) {
         try {
+
             BufferedReader socketReader;
             socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
             String inMsg;
             while ((inMsg = socketReader.readLine()) != null) {
-                ChannelInfo.broadcastMessage("Message received: " + inMsg);
+                this.logger.logInfo("Message received: " + inMsg);
                 String[] args = inMsg.split(ChannelMessage.DIVIDER);
                 ChannelType<?> type = ChannelType.valueOf(args[0]);
 
@@ -117,7 +128,14 @@ public abstract class ChannelServer implements Runnable {
                 }
 
                 if (ChannelType.LISTENER.equals(type)) {
-                    this.runSync(() -> this.handleListenerMessage(new ChannelListenerMessage<>(args)));
+                    ChannelListenerMessage<?> msg = new ChannelListenerMessage<>(args);
+
+                    if (msg.getMessageType().equals(MessageType.Listener.CLOSE_SOCKET)) {
+                        socketReader.close();
+                        socket.close();
+                    }
+
+                    this.handleListenerMessage(msg);
                     continue;
                 }
 
@@ -135,7 +153,7 @@ public abstract class ChannelServer implements Runnable {
                     } else if (ChannelType.DISCORD.equals(type)) {
                         msg = new ChannelDiscordMessage<>(args);
                     } else {
-                        ChannelInfo.broadcastMessage("[Channel] Error while reading channel type");
+                        this.logger.logWarning("Error while reading channel type");
                     }
 
                     if (msg != null) {
@@ -144,8 +162,6 @@ public abstract class ChannelServer implements Runnable {
                 });
 
             }
-
-            socket.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -197,29 +213,27 @@ public abstract class ChannelServer implements Runnable {
     }
 
     public final void sendMessage(Host host, ChannelMessage<?, ?> message) {
-        Thread sender = new Thread(new ChannelMessageSender(host, message.toStream()));
-        sender.start();
-        ChannelInfo.broadcastMessage("Message send: " + message.toStream() + " to " + host);
+        new Thread(() -> this.sendMessageSynchronized(host, message)).start();
     }
 
-    public final void sendMessageSynchronized(Host host, ChannelMessage<?, ?> message) {
-        Socket socket = null;
-        try {
-            socket = new Socket(host.getHostname(), host.getPort());
-        } catch (IOException ignored) {
-        }
-
-        if (socket != null) {
+    protected final void sendMessageSynchronized(Host host, ChannelMessage<?, ?> message) {
+        Socket socket = this.socketByHost.computeIfAbsent(host, h -> {
             try {
-                if (socket.isConnected()) {
-                    BufferedWriter socketWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-                    socketWriter.write(message.toStream());
-                    socketWriter.flush();
-                    socket.close();
-                    ChannelInfo.broadcastMessage("Message send: " + message.toStream() + " to " + host);
-                }
-            } catch (IOException ignored) {
+                return new Socket(host.getHostname(), host.getPort());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
+        });
+
+        try {
+            if (socket.isConnected()) {
+                OutputStreamWriter socketWriter = new OutputStreamWriter(socket.getOutputStream());
+                socketWriter.write(message.toStream());
+                socketWriter.write(System.lineSeparator());
+                socketWriter.flush();
+                this.logger.logInfo("Message send: " + message.toStream() + " to " + host);
+            }
+        } catch (IOException ignored) {
         }
     }
 
@@ -238,14 +252,42 @@ public abstract class ChannelServer implements Runnable {
             for (ChannelServerMessage<?> serverMsg : serverMessages) {
                 this.sendMessage(serverMsg);
             }
-            ChannelInfo.broadcastMessage("Receiving of listeners finished");
+            this.logger.logInfo("Receiving of listeners finished");
         } else if (msg.getMessageType().equals(MessageType.Listener.UNREGISTER_SERVER)) {
             Host host = msg.getSenderHost();
 
             if (host != null) {
                 this.receiverServerListeners.remove(host);
-                ChannelInfo.broadcastMessage("Removed server-listener " + host);
+                this.logger.logInfo("Removed server-listener " + host);
             }
+
+            this.disconnectHost(host);
         }
+    }
+
+    protected void disconnectHost(Host host) {
+        try {
+            Socket socket = this.socketByHost.remove(host);
+            if (socket != null) {
+                socket.close();
+            }
+            this.logger.logInfo("Closed socket to " + host);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void logInfo(String msg) {logger.logInfo(msg);}
+
+    public void logInfo(String msg, boolean print) {logger.logInfo(msg, print);}
+
+    public void logWarning(String msg) {logger.logWarning(msg);}
+
+    public void printInfoLog(boolean enable) {
+        this.logger.printInfoLog(enable);
+    }
+
+    public boolean isPrintingInfoLog() {
+        return this.logger.isPrintingInfoLog();
     }
 }

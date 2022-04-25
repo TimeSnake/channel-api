@@ -24,8 +24,8 @@ public abstract class Channel extends ChannelServer implements de.timesnake.chan
     protected ConcurrentHashMap<Tuple<ChannelType<?>, MessageType<?>>, ConcurrentHashMap<ChannelListener,
             Set<Tuple<ChannelMessageFilter<?>, Method>>>> listeners = new ConcurrentHashMap<>();
 
-    public Channel(Thread mainThread, Integer serverPort, Integer proxyPort) {
-        super(mainThread, serverPort, proxyPort);
+    public Channel(Thread mainThread, Integer serverPort, Integer proxyPort, ChannelLogger logger) {
+        super(mainThread, serverPort, proxyPort, logger);
     }
 
     public void addListener(ChannelListener listener) {
@@ -54,7 +54,9 @@ public abstract class Channel extends ChannelServer implements de.timesnake.chan
                         }
 
                         Set<Tuple<ChannelMessageFilter<?>, Method>> listenerMethods =
-                                this.listeners.computeIfAbsent(type.getTypeTuple(), k -> new ConcurrentHashMap<>()).computeIfAbsent(listener, k -> ConcurrentHashMap.newKeySet());
+                                this.listeners.computeIfAbsent(type.getTypeTuple(), k ->
+                                        new ConcurrentHashMap<>()).computeIfAbsent(listener,
+                                        k -> ConcurrentHashMap.newKeySet());
 
                         if (annotation.filtered() && filter != null) {
                             listenerMethods.add(new Tuple<>(filter, method));
