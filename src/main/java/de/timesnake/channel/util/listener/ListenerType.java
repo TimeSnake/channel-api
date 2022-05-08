@@ -11,16 +11,21 @@ public enum ListenerType {
     SERVER_STATUS(ChannelType.SERVER, MessageType.Server.STATUS, ChannelServerMessage.class, Integer.class),
     SERVER_ONLINE_PLAYERS(ChannelType.SERVER, MessageType.Server.ONLINE_PLAYERS, ChannelServerMessage.class,
             Integer.class), SERVER_MAX_PLAYERS(ChannelType.SERVER, MessageType.Server.MAX_PLAYERS,
-            ChannelServerMessage.class, Integer.class), SERVER_COMMAND(ChannelType.SERVER, MessageType.Server.COMMAND
-            , ChannelServerMessage.class, Integer.class), SERVER_PERMISSION(ChannelType.SERVER,
-            MessageType.Server.PERMISSION, ChannelServerMessage.class, Integer.class), SERVER_MAP(ChannelType.SERVER,
-            MessageType.Server.MAP, ChannelServerMessage.class, Integer.class), SERVER_OLD_PVP(ChannelType.SERVER,
+            ChannelServerMessage.class, Integer.class),
+    SERVER_COMMAND(ChannelType.SERVER, MessageType.Server.COMMAND
+            , ChannelServerMessage.class, Integer.class),
+    SERVER_PERMISSION(ChannelType.SERVER,
+            MessageType.Server.PERMISSION, ChannelServerMessage.class, Integer.class),
+    SERVER_MAP(ChannelType.SERVER,
+            MessageType.Server.MAP, ChannelServerMessage.class, Integer.class),
+    SERVER_OLD_PVP(ChannelType.SERVER,
             MessageType.Server.OLD_PVP, ChannelServerMessage.class, Integer.class),
     SERVER_PASSWORD(ChannelType.SERVER, MessageType.Server.PASSWORD, ChannelServerMessage.class, Integer.class),
     SERVER_STATE(ChannelType.SERVER, MessageType.Server.STATE, ChannelServerMessage.class, Integer.class),
     SERVER_CUSTOM(ChannelType.SERVER, MessageType.Server.CUSTOM, ChannelServerMessage.class, Integer.class),
     SERVER_RESTART(ChannelType.SERVER, MessageType.Server.RESTART, ChannelServerMessage.class, Integer.class),
     SERVER_DISCORD(ChannelType.SERVER, MessageType.Server.DISCORD, ChannelServerMessage.class, Integer.class),
+    SERVER_USER_STATS(ChannelType.SERVER, MessageType.Server.USER_STATS, ChannelServerMessage.class, Integer.class),
 
     SERVER(ChannelType.SERVER, null, ChannelServerMessage.class, Integer.class),
 
