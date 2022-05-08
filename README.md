@@ -24,6 +24,7 @@ Identifier: `<port>`
 - `state` - `<custom>`
 - `restart` - `<delay>`
 - `discord` - `<True/False>`
+- `user_stats` - `<gameName>`
 - `custom`- `<message>`
 
 ### User `user`

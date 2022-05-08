@@ -20,6 +20,8 @@ public abstract class ChannelServer implements Runnable {
 
     public static final Integer ADD = 10000;
 
+    private static final int CONNECTION_RETRIES = 3;
+
     protected static final String LISTEN_IP = "0.0.0.0";
     protected static final String SERVER_IP = "127.0.0.1";
 
@@ -217,13 +219,26 @@ public abstract class ChannelServer implements Runnable {
     }
 
     protected final void sendMessageSynchronized(Host host, ChannelMessage<?, ?> message) {
+        this.sendMessageSynchronized(host, message, 0);
+    }
+
+    protected final void sendMessageSynchronized(Host host, ChannelMessage<?, ?> message, int retry) {
         Socket socket = this.socketByHost.computeIfAbsent(host, h -> {
             try {
                 return new Socket(host.getHostname(), host.getPort());
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                return null;
             }
         });
+
+        if (socket == null) {
+            if (retry >= CONNECTION_RETRIES) {
+                this.logWarning("Failed to setup connection to " + host.getHostname() + ":" + host.getPort());
+                return;
+            }
+            this.sendMessageSynchronized(host, message, 1);
+            return;
+        }
 
         try {
             if (socket.isConnected()) {

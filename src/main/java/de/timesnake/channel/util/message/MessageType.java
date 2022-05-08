@@ -32,8 +32,10 @@ public abstract class MessageType<Value> {
         public static final MessageType<String> CUSTOM = new MessageType.MessageTypeString("custom");
         public static final MessageType<Integer> RESTART = new MessageType.MessageTypeInteger("restart");
         public static final MessageType<Boolean> DISCORD = new MessageTypeBoolean("discord");
+        public static final MessageType<String> USER_STATS = new MessageTypeString("user_stats");
 
-        public static final Set<MessageType<?>> TYPES = Set.of(STATUS, ONLINE_PLAYERS, MAX_PLAYERS, COMMAND, PERMISSION, MAP, PASSWORD, OLD_PVP, STATE, CUSTOM, RESTART, DISCORD);
+        public static final Set<MessageType<?>> TYPES = Set.of(STATUS, ONLINE_PLAYERS, MAX_PLAYERS, COMMAND,
+                PERMISSION, MAP, PASSWORD, OLD_PVP, STATE, CUSTOM, RESTART, DISCORD, USER_STATS);
 
         public static MessageType<?> valueOf(String name) {
             if (name == null) return null;
