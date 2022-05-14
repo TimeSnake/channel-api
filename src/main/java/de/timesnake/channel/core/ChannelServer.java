@@ -236,7 +236,7 @@ public abstract class ChannelServer implements Runnable {
                 this.logWarning("Failed to setup connection to " + host.getHostname() + ":" + host.getPort());
                 return;
             }
-            this.sendMessageSynchronized(host, message, 1);
+            this.sendMessageSynchronized(host, message, retry + 1);
             return;
         }
 
