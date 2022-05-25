@@ -22,7 +22,8 @@ public abstract class ChannelMessage<Identifier, Value> {
         }
     }
 
-    public ChannelMessage(ChannelType<Identifier> channelType, Identifier identifier, MessageType<Value> messageType, Value value) {
+    public ChannelMessage(ChannelType<Identifier> channelType, Identifier identifier, MessageType<Value> messageType,
+                          Value value) {
         this.channelType = channelType;
         this.messageType = messageType;
         this.identifier = identifier;
