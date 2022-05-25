@@ -9,6 +9,20 @@ import java.util.Set;
 
 public abstract class MessageType<Value> {
 
+    private final String name;
+
+    public MessageType(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public abstract String valueToString(Value value);
+
+    public abstract Value parseValue(String value);
+
     public abstract static class Server<Value> extends MessageType<Value> {
         public static final MessageType<Status.Server> STATUS = new MessageType.MessageTypeStatus<>("status");
         public static final MessageType<Integer> ONLINE_PLAYERS = new MessageType.MessageTypeInteger("online_players");
@@ -37,6 +51,10 @@ public abstract class MessageType<Value> {
         public static final Set<MessageType<?>> TYPES = Set.of(STATUS, ONLINE_PLAYERS, MAX_PLAYERS, COMMAND,
                 PERMISSION, MAP, PASSWORD, OLD_PVP, STATE, CUSTOM, RESTART, DISCORD, USER_STATS);
 
+        public Server(String name) {
+            super(name);
+        }
+
         public static MessageType<?> valueOf(String name) {
             if (name == null) return null;
             for (MessageType<?> type : TYPES) {
@@ -45,10 +63,6 @@ public abstract class MessageType<Value> {
                 }
             }
             return null;
-        }
-
-        public Server(String name) {
-            super(name);
         }
     }
 
@@ -78,7 +92,12 @@ public abstract class MessageType<Value> {
             }
         };
 
-        public static final Set<MessageType<?>> TYPES = Set.of(STATUS, SERVICE, SWITCH_PORT, SWITCH_NAME, PERMISSION, PUNISH, ALIAS, TASK, COMMAND, GROUP, TEAM, STATISTICS, CUSTOM, SOUND);
+        public static final Set<MessageType<?>> TYPES = Set.of(STATUS, SERVICE, SWITCH_PORT, SWITCH_NAME, PERMISSION,
+                PUNISH, ALIAS, TASK, COMMAND, GROUP, TEAM, STATISTICS, CUSTOM, SOUND);
+
+        public User(String name) {
+            super(name);
+        }
 
         public static MessageType<?> valueOf(String name) {
             if (name == null) return null;
@@ -88,10 +107,6 @@ public abstract class MessageType<Value> {
                 }
             }
             return null;
-        }
-
-        public User(String name) {
-            super(name);
         }
     }
 
@@ -105,6 +120,10 @@ public abstract class MessageType<Value> {
 
         public static final Set<MessageType<?>> TYPES = Set.of(TICKET_LOCK, SUBMIT, REJECT, ACCEPT, CREATION);
 
+        public Support(String name) {
+            super(name);
+        }
+
         public static MessageType<?> valueOf(String name) {
             if (name == null) return null;
             for (MessageType<?> type : TYPES) {
@@ -113,10 +132,6 @@ public abstract class MessageType<Value> {
                 }
             }
             return null;
-        }
-
-        public Support(String name) {
-            super(name);
         }
     }
 
@@ -148,6 +163,10 @@ public abstract class MessageType<Value> {
         public static final Set<MessageType<?>> TYPES = Set.of(SERVER_PORT, SERVER_MESSAGE_TYPE, REGISTER_SERVER,
                 UNREGISTER_SERVER, REGISTER_HOST, UNREGISTER_HOST, CLOSE_SOCKET);
 
+        public Listener(String name) {
+            super(name);
+        }
+
         public static MessageType<?> valueOf(String name) {
             for (MessageType<?> type : TYPES) {
                 if (type.getName().equals(name)) {
@@ -155,10 +174,6 @@ public abstract class MessageType<Value> {
                 }
             }
             return null;
-        }
-
-        public Listener(String name) {
-            super(name);
         }
     }
 
@@ -169,6 +184,10 @@ public abstract class MessageType<Value> {
 
         public static final Set<MessageType<?>> TYPES = Set.of(ALIAS, PERMISSION);
 
+        public Group(String name) {
+            super(name);
+        }
+
         public static MessageType<?> valueOf(String name) {
             if (name == null) return null;
             for (MessageType<?> type : TYPES) {
@@ -177,10 +196,6 @@ public abstract class MessageType<Value> {
                 }
             }
             return null;
-        }
-
-        public Group(String name) {
-            super(name);
         }
     }
 
@@ -191,6 +206,10 @@ public abstract class MessageType<Value> {
 
         public static final Set<MessageType<?>> TYPES = Set.of(PING, PONG);
 
+        public Ping(String name) {
+            super(name);
+        }
+
         public static MessageType<?> valueOf(String name) {
             if (name == null) return null;
             for (MessageType<?> type : TYPES) {
@@ -199,10 +218,6 @@ public abstract class MessageType<Value> {
                 }
             }
             return null;
-        }
-
-        public Ping(String name) {
-            super(name);
         }
     }
 
@@ -253,6 +268,10 @@ public abstract class MessageType<Value> {
 
         public static final Set<MessageType<?>> TYPES = Set.of(MOVE_TEAMS, DESTROY_TEAMS);
 
+        public Discord(String name) {
+            super(name);
+        }
+
         public static MessageType<?> valueOf(String name) {
             if (name == null) return null;
             for (MessageType<?> type : TYPES) {
@@ -262,26 +281,7 @@ public abstract class MessageType<Value> {
             }
             return null;
         }
-
-        public Discord(String name) {
-            super(name);
-        }
     }
-
-
-    private final String name;
-
-    public MessageType(String name) {
-        this.name = name;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public abstract String valueToString(Value value);
-
-    public abstract Value parseValue(String value);
 
     public static class MessageTypeInteger extends MessageType<Integer> {
 

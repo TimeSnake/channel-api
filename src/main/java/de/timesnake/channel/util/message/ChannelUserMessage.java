@@ -29,7 +29,8 @@ public class ChannelUserMessage<Value> extends ChannelMessage<UUID, Value> {
     }
 
     public enum Sound {
-        PLING, PLONG
+        PLING,
+        PLONG
     }
 
 }

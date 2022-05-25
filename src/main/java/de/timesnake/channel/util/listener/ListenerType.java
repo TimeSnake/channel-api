@@ -10,7 +10,8 @@ public enum ListenerType {
 
     SERVER_STATUS(ChannelType.SERVER, MessageType.Server.STATUS, ChannelServerMessage.class, Integer.class),
     SERVER_ONLINE_PLAYERS(ChannelType.SERVER, MessageType.Server.ONLINE_PLAYERS, ChannelServerMessage.class,
-            Integer.class), SERVER_MAX_PLAYERS(ChannelType.SERVER, MessageType.Server.MAX_PLAYERS,
+            Integer.class),
+    SERVER_MAX_PLAYERS(ChannelType.SERVER, MessageType.Server.MAX_PLAYERS,
             ChannelServerMessage.class, Integer.class),
     SERVER_COMMAND(ChannelType.SERVER, MessageType.Server.COMMAND
             , ChannelServerMessage.class, Integer.class),
@@ -49,8 +50,10 @@ public enum ListenerType {
 
 
     SUPPORT_TICKET_LOCK(ChannelType.SUPPORT, MessageType.Support.TICKET_LOCK, ChannelSupportMessage.class,
-            Integer.class), SUPPORT_SUBMIT(ChannelType.SUPPORT, MessageType.Support.SUBMIT,
-            ChannelSupportMessage.class, Integer.class), SUPPORT_REJECT(ChannelType.SUPPORT,
+            Integer.class),
+    SUPPORT_SUBMIT(ChannelType.SUPPORT, MessageType.Support.SUBMIT,
+            ChannelSupportMessage.class, Integer.class),
+    SUPPORT_REJECT(ChannelType.SUPPORT,
             MessageType.Support.REJECT, ChannelSupportMessage.class, Integer.class),
     SUPPORT_ACCEPT(ChannelType.SUPPORT, MessageType.Support.ACCEPT, ChannelSupportMessage.class, Integer.class),
     SUPPORT_CREATION(ChannelType.SUPPORT, MessageType.Support.CREATION, ChannelSupportMessage.class, Integer.class),
@@ -82,7 +85,8 @@ public enum ListenerType {
 
 
     DISCORD_MOVE_TEAMS(ChannelType.DISCORD, MessageType.Discord.MOVE_TEAMS, ChannelDiscordMessage.class,
-            String.class), DISCORD_DESTROY_TEAMS(ChannelType.DISCORD, MessageType.Discord.DESTROY_TEAMS,
+            String.class),
+    DISCORD_DESTROY_TEAMS(ChannelType.DISCORD, MessageType.Discord.DESTROY_TEAMS,
             ChannelDiscordMessage.class, String.class),
 
 
@@ -98,7 +102,8 @@ public enum ListenerType {
     private final Class<? extends ChannelMessage> messageClass;
     private final Class<?> filterClass;
 
-    ListenerType(ChannelType<?> channelType, MessageType<?> messageType, Class<? extends ChannelMessage> messageClass, Class<?> filterClass) {
+    ListenerType(ChannelType<?> channelType, MessageType<?> messageType, Class<? extends ChannelMessage> messageClass
+            , Class<?> filterClass) {
         this.channelType = channelType;
         this.messageType = messageType;
         this.typeTuple = new Tuple<>(this.channelType, this.messageType);
