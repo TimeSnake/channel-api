@@ -30,14 +30,11 @@ public class ChannelDiscordMessage<Value> extends ChannelMessage<String, Value> 
 
             for (String teamAllocation : toParse.split(TEAM_DELIMITER)) {
                 String[] values = teamAllocation.split(NAME_DELIMITER);
-                List<UUID> uuids = new LinkedList<>();
+                List<UUID> uuids = this.uuidsByTeam.compute(values[0], (k, v) -> new LinkedList<>());
 
                 for (int i = 1; i < values.length; i++) {
                     uuids.add(UUID.fromString(values[i]));
                 }
-
-                uuidsByTeam.put(values[0], uuids);
-
             }
         }
 
