@@ -23,27 +23,29 @@ public class ChannelDiscordMessage<Value> extends ChannelMessage<String, Value> 
         private static final String TEAM_DELIMITER = "#";
         private static final String NAME_DELIMITER = "/";
 
-        private final Map<String, List<UUID>> uuidsByTeam;
+        private final Map<String, ? extends Collection<UUID>> uuidsByTeam;
 
         protected Allocation(String toParse) {
-            uuidsByTeam = new LinkedHashMap<>();
+            Map<String, LinkedList<UUID>> uuidsByTeam = new LinkedHashMap<>();
 
             for (String teamAllocation : toParse.split(TEAM_DELIMITER)) {
                 String[] values = teamAllocation.split(NAME_DELIMITER);
-                List<UUID> uuids = this.uuidsByTeam.compute(values[0], (k, v) -> new LinkedList<>());
+                LinkedList<UUID> uuids = uuidsByTeam.compute(values[0], (k, v) -> new LinkedList<>());
 
                 for (int i = 1; i < values.length; i++) {
                     uuids.add(UUID.fromString(values[i]));
                 }
             }
+
+            this.uuidsByTeam = uuidsByTeam;
         }
 
-        public Allocation(Map<String, List<UUID>> uuidsByTeam) {
+        public Allocation(Map<String, ? extends Collection<UUID>> uuidsByTeam) {
             this.uuidsByTeam = uuidsByTeam;
         }
 
 
-        public Map<String, List<UUID>> getAllocation() {
+        public Map<String, ? extends Collection<UUID>> getAllocation() {
             return uuidsByTeam;
         }
 
@@ -51,7 +53,7 @@ public class ChannelDiscordMessage<Value> extends ChannelMessage<String, Value> 
         public String toString() {
             StringBuilder sb = new StringBuilder();
 
-            for (Map.Entry<String, List<UUID>> entry : uuidsByTeam.entrySet()) {
+            for (Map.Entry<String, ? extends Collection<UUID>> entry : this.uuidsByTeam.entrySet()) {
                 sb.append(entry.getKey()); // Team
 
                 if (!entry.getValue().isEmpty()) {
@@ -69,7 +71,9 @@ public class ChannelDiscordMessage<Value> extends ChannelMessage<String, Value> 
                 sb.append(TEAM_DELIMITER); // End of team
             }
 
-            sb.deleteCharAt(sb.length() - 1); // Remove last TEAM_DELIMITER
+            if (!this.uuidsByTeam.isEmpty()) {
+                sb.deleteCharAt(sb.length() - 1); // Remove last TEAM_DELIMITER
+            }
             return sb.toString();
         }
 

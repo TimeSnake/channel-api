@@ -84,10 +84,12 @@ public enum ListenerType {
     PING(ChannelType.PING, null, ChannelPingMessage.class, Void.class),
 
 
-    DISCORD_MOVE_TEAMS(ChannelType.DISCORD, MessageType.Discord.MOVE_TEAMS, ChannelDiscordMessage.class,
-            String.class),
-    DISCORD_DESTROY_TEAMS(ChannelType.DISCORD, MessageType.Discord.DESTROY_TEAMS,
-            ChannelDiscordMessage.class, String.class),
+    DISCORD_MOVE_MEMBERS(ChannelType.DISCORD, MessageType.Discord.MOVE_MEMBERS, ChannelDiscordMessage.class, String.class),
+    DISCORD_DESTROY_TEAMS(ChannelType.DISCORD, MessageType.Discord.DESTROY_CHANNELS, ChannelDiscordMessage.class, String.class),
+    DISCORD_DELETE_UNUSED(ChannelType.DISCORD, MessageType.Discord.DELETE_UNUSED, ChannelDiscordMessage.class, Void.class),
+    DISCORD_HIDE_CHANNELS(ChannelType.DISCORD, MessageType.Discord.HIDE_CHANNELS, ChannelDiscordMessage.class, Boolean.class),
+    DISCORD_MUTE_CHANNEL(ChannelType.DISCORD, MessageType.Discord.MUTE_CHANNEL, ChannelDiscordMessage.class, String.class),
+    DISCORD_DISCONNECT_MEMBER(ChannelType.DISCORD, MessageType.Discord.DISCONNECT_MEMBER, ChannelDiscordMessage.class, UUID.class),
 
 
     DISCORD(ChannelType.DISCORD, null, ChannelDiscordMessage.class, String.class),
