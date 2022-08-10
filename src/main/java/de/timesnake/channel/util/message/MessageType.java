@@ -73,7 +73,8 @@ public abstract class MessageType<Value> {
         public static final MessageType<Void> ALIAS = new MessageType.MessageTypeVoid("alias");
         public static final MessageType<String> TASK = new MessageType.MessageTypeString("task");
         public static final MessageType<String> COMMAND = new MessageType.MessageTypeString("command");
-        public static final MessageType<String> GROUP = new MessageType.MessageTypeString("group");
+        public static final MessageType<String> PERM_GROUP = new MessageType.MessageTypeString("perm_group");
+        public static final MessageType<Void> DISPLAY_GROUP = new MessageType.MessageTypeVoid("display_group");
         public static final MessageType<String> TEAM = new MessageType.MessageTypeString("team");
         public static final MessageType<String> STATISTICS = new MessageType.MessageTypeString("statistics");
         public static final MessageType<String> CUSTOM = new MessageType.MessageTypeString("custom");
@@ -90,7 +91,7 @@ public abstract class MessageType<Value> {
         };
 
         public static final Set<MessageType<?>> TYPES = Set.of(STATUS, SERVICE, SWITCH_PORT, SWITCH_NAME, PERMISSION,
-                PUNISH, ALIAS, TASK, COMMAND, GROUP, TEAM, STATISTICS, CUSTOM, SOUND);
+                PUNISH, ALIAS, TASK, COMMAND, PERM_GROUP, DISPLAY_GROUP, TEAM, STATISTICS, CUSTOM, SOUND);
 
         public static MessageType<?> valueOf(String name) {
             if (name == null) return null;
