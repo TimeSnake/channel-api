@@ -25,6 +25,7 @@ Identifier: `<port>`
 - `restart` - `<delay>`
 - `discord` - `<True/False>`
 - `user_stats` - `<gameName>`
+- `load_world` - `<worldName>`
 - `custom`- `<message>`
 
 ### User `user`
@@ -42,7 +43,7 @@ Identifier: `<uuid>`
 - `alias` - _void_
 - `task` - `<task>`
 - `command` - `<cmd>`
-- `group` - `<groupName>`
+- `permGroup` - `<groupName>`
 - `team` - `<teamName>`
 - `statistics` - `<statisticType`
 - `sound` - `<PLING/PLONG>`
@@ -73,7 +74,7 @@ Identifier: `<serverPort>`
 - `accept` - `<ticketId>`
 - `creation` - `<ticketId>`
 
-### Group `group`
+### Group `permGroup`
 
 Identifier: `<groupName>`
 
