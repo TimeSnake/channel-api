@@ -2,20 +2,20 @@ package de.timesnake.channel.util.message;
 
 import de.timesnake.channel.core.ChannelType;
 
-public class ChannelSupportMessage<Value> extends ChannelMessage<Integer, Value> {
+public class ChannelSupportMessage<Value> extends ChannelMessage<String, Value> {
 
     public ChannelSupportMessage(String... args) {
         super(args);
     }
 
-    public ChannelSupportMessage(Integer port, MessageType<Value> type, Value value) {
-        super(ChannelType.SUPPORT, port, type, value);
+    public ChannelSupportMessage(String name, MessageType<Value> type, Value value) {
+        super(ChannelType.SUPPORT, name, type, value);
         if (!MessageType.Support.TYPES.contains(type)) {
             throw new InvalidMessageTypeException();
         }
     }
 
-    public Integer getPort() {
+    public String getName() {
         return super.getIdentifier();
     }
 

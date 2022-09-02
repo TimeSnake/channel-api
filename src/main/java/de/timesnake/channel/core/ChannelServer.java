@@ -18,15 +18,15 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public abstract class ChannelServer implements Runnable {
 
+    public static final String PROXY_NAME = "proxy";
+
     public static final Integer ADD = 10000;
-
-    private static final int CONNECTION_RETRIES = 3;
-
     protected static final String LISTEN_IP = "0.0.0.0";
     protected static final String SERVER_IP = "127.0.0.1";
-
+    private static final int CONNECTION_RETRIES = 3;
     protected final Thread mainThread;
 
+    protected final String serverName;
     protected final Integer serverPort;
     protected final Host self;
 
@@ -41,7 +41,7 @@ public abstract class ChannelServer implements Runnable {
     protected Set<ChannelServerMessage<?>> serverMessages = ConcurrentHashMap.newKeySet();
 
     // Already send server messages
-    protected Set<Integer> sendListenerPorts = ConcurrentHashMap.newKeySet();
+    protected Set<String> sendListenerNames = ConcurrentHashMap.newKeySet();
     protected boolean sendListenerMessageTypeAll = false;
     protected Set<MessageType<?>> sendListenerMessageTypes = ConcurrentHashMap.newKeySet();
 
@@ -54,9 +54,10 @@ public abstract class ChannelServer implements Runnable {
     protected ChannelLogger logger;
 
 
-    protected ChannelServer(Thread mainThread, int serverPort, int proxy, ChannelLogger logger) {
+    protected ChannelServer(Thread mainThread, String serverName, int serverPort, int proxy, ChannelLogger logger) {
         this.mainThread = mainThread;
 
+        this.serverName = serverName;
         this.serverPort = serverPort;
         this.self = new Host(SERVER_IP, serverPort + Channel.ADD);
 
@@ -89,7 +90,7 @@ public abstract class ChannelServer implements Runnable {
     protected void addServerListener(ChannelListenerMessage<?> msg) {
         Host senderHost = msg.getSenderHost();
 
-        if (msg.getMessageType().equals(MessageType.Listener.SERVER_PORT)) {
+        if (msg.getMessageType().equals(MessageType.Listener.SERVER_NAME)) {
             this.receiverServerListeners.put(senderHost, ConcurrentHashMap.newKeySet());
         } else if (msg.getMessageType().equals(MessageType.Listener.SERVER_MESSAGE_TYPE)) {
             if (receiverServerListeners.containsKey(senderHost)) {
@@ -260,7 +261,7 @@ public abstract class ChannelServer implements Runnable {
 
     protected synchronized void handleListenerMessage(ChannelListenerMessage<?> msg) {
         if (msg.getMessageType().equals(MessageType.Listener.SERVER_MESSAGE_TYPE)
-                || (msg.getMessageType().equals(MessageType.Listener.SERVER_PORT) && !msg.getSenderHost().equals(this.self))) {
+                || (msg.getMessageType().equals(MessageType.Listener.SERVER_NAME) && !msg.getSenderHost().equals(this.self))) {
             this.addServerListener(msg);
         } else if (msg.getMessageType().equals(MessageType.Listener.REGISTER_SERVER) && msg.getSenderHost().equals(this.proxy)) {
             this.serverMessageServersRegistered = true;

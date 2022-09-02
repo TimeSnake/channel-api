@@ -23,15 +23,15 @@ public abstract class ChannelType<Identifier> {
             return MessageType.User.valueOf(messageType);
         }
     };
-    public static final ChannelType<Integer> SERVER = new ChannelType<>("server") {
+    public static final ChannelType<String> SERVER = new ChannelType<>("server") {
         @Override
-        public String identifierToString(Integer integer) {
-            return String.valueOf(integer);
+        public String identifierToString(String string) {
+            return string;
         }
 
         @Override
-        public Integer parseIdentifier(String identifier) {
-            return Integer.parseInt(identifier);
+        public String parseIdentifier(String identifier) {
+            return identifier;
         }
 
         @Override
@@ -71,15 +71,15 @@ public abstract class ChannelType<Identifier> {
             return MessageType.Group.valueOf(messageType);
         }
     };
-    public static final ChannelType<Integer> PING = new ChannelType<>("ping") {
+    public static final ChannelType<String> PING = new ChannelType<>("ping") {
         @Override
-        public String identifierToString(Integer integer) {
-            return String.valueOf(integer);
+        public String identifierToString(String s) {
+            return s;
         }
 
         @Override
-        public Integer parseIdentifier(String identifier) {
-            return Integer.parseInt(identifier);
+        public String parseIdentifier(String identifier) {
+            return identifier;
         }
 
         @Override
@@ -87,15 +87,15 @@ public abstract class ChannelType<Identifier> {
             return MessageType.Ping.valueOf(messageType);
         }
     };
-    public static final ChannelType<Integer> SUPPORT = new ChannelType<>("support") {
+    public static final ChannelType<String> SUPPORT = new ChannelType<>("support") {
         @Override
-        public String identifierToString(Integer s) {
-            return String.valueOf(s);
+        public String identifierToString(String string) {
+            return string;
         }
 
         @Override
-        public Integer parseIdentifier(String identifier) {
-            return Integer.valueOf(identifier);
+        public String parseIdentifier(String identifier) {
+            return identifier;
         }
 
         @Override
