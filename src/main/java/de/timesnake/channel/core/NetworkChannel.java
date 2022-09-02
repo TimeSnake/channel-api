@@ -5,9 +5,6 @@ import de.timesnake.channel.util.message.MessageType;
 
 public class NetworkChannel {
 
-    private static Channel channel;
-    private static Thread thread;
-
     public static void start(Channel channel) {
         NetworkChannel.channel = channel;
         thread = new Thread(channel);
@@ -16,9 +13,9 @@ public class NetworkChannel {
     }
 
     public static void stop() {
-        if (!channel.getProxyPort().equals(channel.getServerPort())) {
+        if (!channel.getProxyName().equals(channel.getServerName())) {
             channel.sendMessageToProxy(new ChannelListenerMessage<>(NetworkChannel.getChannel().getSelf(),
-                    MessageType.Listener.UNREGISTER_SERVER, channel.getServerPort()));
+                    MessageType.Listener.UNREGISTER_SERVER, channel.getServerName()));
         }
         if (thread.isAlive()) {
             thread.interrupt();
@@ -26,9 +23,11 @@ public class NetworkChannel {
         }
     }
 
-
     public static Channel getChannel() {
         return channel;
     }
+
+    private static Channel channel;
+    private static Thread thread;
 
 }

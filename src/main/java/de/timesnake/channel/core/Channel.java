@@ -24,8 +24,8 @@ public abstract class Channel extends ChannelServer implements de.timesnake.chan
     protected ConcurrentHashMap<Tuple<ChannelType<?>, MessageType<?>>, ConcurrentHashMap<ChannelListener,
             Set<Tuple<ChannelMessageFilter<?>, Method>>>> listeners = new ConcurrentHashMap<>();
 
-    public Channel(Thread mainThread, Integer serverPort, Integer proxyPort, ChannelLogger logger) {
-        super(mainThread, serverPort, proxyPort, logger);
+    public Channel(Thread mainThread, String serverName, Integer serverPort, Integer proxyPort, ChannelLogger logger) {
+        super(mainThread, serverName, serverPort, proxyPort, logger);
     }
 
     public void addListener(ChannelListener listener) {
@@ -66,23 +66,23 @@ public abstract class Channel extends ChannelServer implements de.timesnake.chan
 
                         if (type.getChannelType().equals(ChannelType.SERVER)) {
                             if (filter != null && filter.getIdentifierFilter() != null) {
-                                Collection<Integer> identifiers;
+                                Collection<String> identifiers;
 
                                 try {
-                                    identifiers = (Collection<Integer>) filter.getIdentifierFilter();
+                                    identifiers = (Collection<String>) filter.getIdentifierFilter();
                                 } catch (ClassCastException e) {
                                     throw new InconsistentChannelListenerException("invalid filter type");
                                 }
 
-                                for (Integer port : identifiers) {
-                                    if (this.sendListenerPorts.contains(port)) {
+                                for (String name : identifiers) {
+                                    if (this.sendListenerNames.contains(name)) {
                                         continue;
                                     }
 
-                                    this.sendListenerPorts.add(port);
+                                    this.sendListenerNames.add(name);
 
                                     this.sendMessage(new ChannelListenerMessage<>(this.self,
-                                            MessageType.Listener.SERVER_PORT, port));
+                                            MessageType.Listener.SERVER_NAME, name));
                                 }
                             } else {
                                 if (this.sendListenerMessageTypeAll || this.sendListenerMessageTypes.contains(type.getMessageType())) {
@@ -128,12 +128,21 @@ public abstract class Channel extends ChannelServer implements de.timesnake.chan
         return proxy;
     }
 
+    @Deprecated
     public Integer getServerPort() {
         return serverPort;
     }
 
+    public String getServerName() {
+        return serverName;
+    }
+
     public Integer getProxyPort() {
         return proxyPort;
+    }
+
+    public String getProxyName() {
+        return PROXY_NAME;
     }
 
     @Override
@@ -164,6 +173,6 @@ public abstract class Channel extends ChannelServer implements de.timesnake.chan
 
     @Override
     protected void handlePingMessage(ChannelPingMessage message) {
-        this.sendMessageToProxy(new ChannelPingMessage(this.serverPort, MessageType.Ping.PONG));
+        this.sendMessageToProxy(new ChannelPingMessage(this.getServerName(), MessageType.Ping.PONG));
     }
 }

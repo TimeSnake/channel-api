@@ -22,6 +22,10 @@ public enum ListenerType {
     SERVER_DISCORD(ChannelType.SERVER, MessageType.Server.DISCORD, ChannelServerMessage.class, Boolean.class),
     SERVER_USER_STATS(ChannelType.SERVER, MessageType.Server.USER_STATS, ChannelServerMessage.class, String.class),
     SERVER_LOAD_WORLD(ChannelType.SERVER, MessageType.Server.LOAD_WORLD, ChannelServerMessage.class, String.class),
+    SERVER_UNLOAD_WORLD(ChannelType.SERVER, MessageType.Server.UNLOAD_WORLD, ChannelServerMessage.class, String.class),
+    SERVER_LOADED_WORLD(ChannelType.SERVER, MessageType.Server.LOADED_WORLD, ChannelServerMessage.class, String.class),
+    SERVER_UNLOADED_WORLD(ChannelType.SERVER, MessageType.Server.UNLOADED_WORLD, ChannelServerMessage.class, String.class),
+    SERVER_UNLOADED_ALL_WORLDS(ChannelType.SERVER, MessageType.Server.UNLOADED_ALL_WORLDS, ChannelServerMessage.class, Void.class),
 
     SERVER(ChannelType.SERVER, null, ChannelServerMessage.class, Integer.class),
 
@@ -35,6 +39,7 @@ public enum ListenerType {
     USER_ALIAS(ChannelType.USER, MessageType.User.ALIAS, ChannelUserMessage.class, UUID.class),
     USER_TASK(ChannelType.USER, MessageType.User.TASK, ChannelUserMessage.class, UUID.class),
     USER_COMMAND(ChannelType.USER, MessageType.User.COMMAND, ChannelUserMessage.class, UUID.class),
+    USER_PROXY_COMMAND(ChannelType.USER, MessageType.User.PROXY_COMMAND, ChannelUserMessage.class, UUID.class),
     USER_PERM_GROUP(ChannelType.USER, MessageType.User.PERM_GROUP, ChannelUserMessage.class, UUID.class),
     USER_DISPLAY_GROUP(ChannelType.USER, MessageType.User.DISPLAY_GROUP, ChannelUserMessage.class, UUID.class),
     USER_TEAM(ChannelType.USER, MessageType.User.TEAM, ChannelUserMessage.class, UUID.class),
@@ -57,7 +62,7 @@ public enum ListenerType {
     SUPPORT(ChannelType.SUPPORT, null, ChannelSupportMessage.class, Integer.class),
 
 
-    LISTENER_SERVER_PORT(ChannelType.LISTENER, MessageType.Listener.SERVER_PORT, ChannelListenerMessage.class,
+    LISTENER_SERVER_NAME(ChannelType.LISTENER, MessageType.Listener.SERVER_NAME, ChannelListenerMessage.class,
             Integer.class),
     LISTENER_SERVER_MESSAGE_TYPE(ChannelType.LISTENER, MessageType.Listener.SERVER_MESSAGE_TYPE,
             ChannelListenerMessage.class, MessageType.class),
