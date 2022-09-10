@@ -294,6 +294,29 @@ public abstract class MessageType<Value> {
         }
     }
 
+    public abstract static class Templates<Value> extends MessageType<Value> {
+
+        public static final MessageType<String> INIT_PLAYER_SERVER = new MessageTypeString("init_player_server");
+        public static final MessageType<String> INIT_PUBLIC_PLAYER_SERVER = new MessageTypeString("init_public_player_server");
+        public static final MessageType<List<String>> UPDATE_WORLD = new MessageTypeStringList("update_world");
+
+        public static final Set<MessageType<?>> TYPES = Set.of(INIT_PLAYER_SERVER, INIT_PUBLIC_PLAYER_SERVER, UPDATE_WORLD);
+
+        public static MessageType<?> valueOf(String name) {
+            if (name == null) return null;
+            for (MessageType<?> type : TYPES) {
+                if (type.getName().equals(name)) {
+                    return type;
+                }
+            }
+            return null;
+        }
+
+        public Templates(String name) {
+            super(name);
+        }
+    }
+
     public static class MessageTypeInteger extends MessageType<Integer> {
 
         public MessageTypeInteger(String name) {
@@ -325,6 +348,35 @@ public abstract class MessageType<Value> {
         @Override
         public String parseValue(String value) {
             return value;
+        }
+    }
+
+    public static class MessageTypeStringList extends MessageType<List<String>> {
+
+        public MessageTypeStringList(String name) {
+            super(name);
+        }
+
+        @Override
+        public String valueToString(List<String> list) {
+            if (list.isEmpty()) {
+                return "";
+            }
+
+            StringBuilder sb = new StringBuilder();
+
+            for (String s : list) {
+                sb.append(s).append("#");
+            }
+
+            sb.deleteCharAt(sb.length() - 1);
+
+            return sb.toString();
+        }
+
+        @Override
+        public List<String> parseValue(String value) {
+            return Arrays.asList(value.split("#"));
         }
     }
 

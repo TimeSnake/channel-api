@@ -120,8 +120,24 @@ public abstract class ChannelType<Identifier> {
             return MessageType.Discord.valueOf(messageType);
         }
     };
+    public static final ChannelType<String> TEMPLATES = new ChannelType<>("templates") {
+        @Override
+        public String identifierToString(String string) {
+            return string;
+        }
 
-    public static final List<ChannelType<?>> TYPES = List.of(USER, SERVER, LISTENER, GROUP, PING, SUPPORT, DISCORD);
+        @Override
+        public String parseIdentifier(String identifier) {
+            return identifier;
+        }
+
+        @Override
+        public MessageType<?> parseMessageType(String messageType) {
+            return MessageType.Support.valueOf(messageType);
+        }
+    };
+
+    public static final List<ChannelType<?>> TYPES = List.of(USER, SERVER, LISTENER, GROUP, PING, SUPPORT, DISCORD, TEMPLATES);
 
     public static ChannelType<?> valueOf(String name) {
         for (ChannelType<?> type : TYPES) {
