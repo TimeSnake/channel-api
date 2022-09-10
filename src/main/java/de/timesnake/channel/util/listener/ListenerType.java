@@ -4,6 +4,7 @@ import de.timesnake.channel.core.ChannelType;
 import de.timesnake.channel.util.message.*;
 import de.timesnake.library.basic.util.Tuple;
 
+import java.util.List;
 import java.util.UUID;
 
 public enum ListenerType {
@@ -94,6 +95,14 @@ public enum ListenerType {
 
 
     DISCORD(ChannelType.DISCORD, null, ChannelDiscordMessage.class, String.class),
+
+
+    TEMPLATES_INIT_PLAYER_SERVER(ChannelType.TEMPLATES, MessageType.Templates.INIT_PLAYER_SERVER, ChannelTemplatesMessage.class, String.class),
+    TEMPLATES_INIT_PUBLIC_PLAYER_SERVER(ChannelType.TEMPLATES, MessageType.Templates.INIT_PUBLIC_PLAYER_SERVER, ChannelTemplatesMessage.class, String.class),
+    TEMPLATES_UPDATE_WORLD(ChannelType.TEMPLATES, MessageType.Templates.UPDATE_WORLD, ChannelTemplatesMessage.class, List.class),
+
+    TEMPLATES(ChannelType.TEMPLATES, null, ChannelTemplatesMessage.class, String.class),
+
 
     ALL(null, null, null, null);
 
