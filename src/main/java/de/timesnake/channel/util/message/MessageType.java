@@ -42,6 +42,8 @@ public abstract class MessageType<Value> {
         };
         public static final MessageType<String> CUSTOM = new MessageTypeString("custom");
         public static final MessageType<Integer> RESTART = new MessageTypeInteger("restart");
+        public static final MessageType<Integer> DESTROY = new MessageTypeInteger("destroy");
+        public static final MessageType<Long> KILL_DESTROY = new MessageTypeLong("kill_destroy");
         public static final MessageType<Boolean> DISCORD = new MessageTypeBoolean("discord");
         public static final MessageType<String> USER_STATS = new MessageTypeString("user_stats");
         public static final MessageType<String> LOAD_WORLD = new MessageTypeString("load_world");
@@ -51,7 +53,7 @@ public abstract class MessageType<Value> {
         public static final MessageType<Void> UNLOADED_ALL_WORLDS = new MessageTypeVoid("unloaded_all_worlds");
 
         public static final Set<MessageType<?>> TYPES = Set.of(STATUS, ONLINE_PLAYERS, MAX_PLAYERS, COMMAND,
-                PERMISSION, MAP, PASSWORD, OLD_PVP, STATE, CUSTOM, RESTART, DISCORD, USER_STATS, LOAD_WORLD,
+                PERMISSION, MAP, PASSWORD, OLD_PVP, STATE, CUSTOM, RESTART, DESTROY, KILL_DESTROY, DISCORD, USER_STATS, LOAD_WORLD,
                 UNLOAD_WORLD, LOADED_WORLD, UNLOADED_WORLD, UNLOADED_ALL_WORLDS);
 
         public static MessageType<?> valueOf(String name) {
@@ -331,6 +333,23 @@ public abstract class MessageType<Value> {
         @Override
         public Integer parseValue(String value) {
             return Integer.valueOf(value);
+        }
+    }
+
+    public static class MessageTypeLong extends MessageType<Long> {
+
+        public MessageTypeLong(String name) {
+            super(name);
+        }
+
+        @Override
+        public String valueToString(Long l) {
+            return String.valueOf(l);
+        }
+
+        @Override
+        public Long parseValue(String value) {
+            return Long.valueOf(value);
         }
     }
 
