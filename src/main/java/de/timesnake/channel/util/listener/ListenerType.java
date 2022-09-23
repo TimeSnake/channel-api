@@ -20,6 +20,8 @@ public enum ListenerType {
     SERVER_STATE(ChannelType.SERVER, MessageType.Server.STATE, ChannelServerMessage.class, Integer.class),
     SERVER_CUSTOM(ChannelType.SERVER, MessageType.Server.CUSTOM, ChannelServerMessage.class, String.class),
     SERVER_RESTART(ChannelType.SERVER, MessageType.Server.RESTART, ChannelServerMessage.class, Integer.class),
+    SERVER_DESTROY(ChannelType.SERVER, MessageType.Server.DESTROY, ChannelServerMessage.class, Integer.class),
+    SERVER_KILL_DESTROY(ChannelType.SERVER, MessageType.Server.KILL_DESTROY, ChannelServerMessage.class, Long.class),
     SERVER_DISCORD(ChannelType.SERVER, MessageType.Server.DISCORD, ChannelServerMessage.class, Boolean.class),
     SERVER_USER_STATS(ChannelType.SERVER, MessageType.Server.USER_STATS, ChannelServerMessage.class, String.class),
     SERVER_LOAD_WORLD(ChannelType.SERVER, MessageType.Server.LOAD_WORLD, ChannelServerMessage.class, String.class),
