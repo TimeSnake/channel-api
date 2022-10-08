@@ -123,51 +123,58 @@ public abstract class ChannelServer implements Runnable {
             while ((inMsg = socketReader.readLine()) != null) {
                 this.logger.logInfo("Message received: " + inMsg);
                 String[] args = inMsg.split(ChannelMessage.DIVIDER);
+
                 ChannelType<?> type = ChannelType.valueOf(args[0]);
-
-                if (ChannelType.PING.equals(type)) {
-                    this.handlePingMessage(new ChannelPingMessage(args));
-                    continue;
-                }
-
                 if (ChannelType.LISTENER.equals(type)) {
                     ChannelListenerMessage<?> msg = new ChannelListenerMessage<>(args);
-
                     if (msg.getMessageType().equals(MessageType.Listener.CLOSE_SOCKET)) {
                         socketReader.close();
                         socket.close();
                     }
-
-                    this.handleListenerMessage(msg);
-                    continue;
                 }
-
-                this.runSync(() -> {
-                    ChannelMessage<?, ?> msg = null;
-
-                    if (ChannelType.SERVER.equals(type)) {
-                        msg = new ChannelServerMessage<>(args);
-                    } else if (ChannelType.USER.equals(type)) {
-                        msg = new ChannelUserMessage<>(args);
-                    } else if (ChannelType.GROUP.equals(type)) {
-                        msg = new ChannelGroupMessage<>(args);
-                    } else if (ChannelType.SUPPORT.equals(type)) {
-                        msg = new ChannelSupportMessage<>(args);
-                    } else if (ChannelType.DISCORD.equals(type)) {
-                        msg = new ChannelDiscordMessage<>(args);
-                    } else {
-                        this.logger.logWarning("Error while reading channel type");
-                    }
-
-                    if (msg != null) {
-                        this.handleMessage(msg);
-                    }
-                });
+                this.handleMessage(args);
 
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    protected void handleMessage(String[] args) {
+        ChannelType<?> type = ChannelType.valueOf(args[0]);
+
+        if (ChannelType.PING.equals(type)) {
+            this.handlePingMessage(new ChannelPingMessage(args));
+            return;
+        }
+
+        if (ChannelType.LISTENER.equals(type)) {
+            ChannelListenerMessage<?> msg = new ChannelListenerMessage<>(args);
+            this.handleListenerMessage(msg);
+            return;
+        }
+
+        this.runSync(() -> {
+            ChannelMessage<?, ?> msg = null;
+
+            if (ChannelType.SERVER.equals(type)) {
+                msg = new ChannelServerMessage<>(args);
+            } else if (ChannelType.USER.equals(type)) {
+                msg = new ChannelUserMessage<>(args);
+            } else if (ChannelType.GROUP.equals(type)) {
+                msg = new ChannelGroupMessage<>(args);
+            } else if (ChannelType.SUPPORT.equals(type)) {
+                msg = new ChannelSupportMessage<>(args);
+            } else if (ChannelType.DISCORD.equals(type)) {
+                msg = new ChannelDiscordMessage<>(args);
+            } else {
+                this.logger.logWarning("Error while reading channel type");
+            }
+
+            if (msg != null) {
+                this.handleMessage(msg);
+            }
+        });
     }
 
     public void sendMessage(ChannelMessage<?, ?> message) {
