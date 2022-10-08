@@ -13,10 +13,8 @@ public class NetworkChannel {
     }
 
     public static void stop() {
-        if (!channel.getProxyName().equals(channel.getServerName())) {
-            channel.sendMessageToProxy(new ChannelListenerMessage<>(NetworkChannel.getChannel().getSelf(),
-                    MessageType.Listener.UNREGISTER_SERVER, channel.getServerName()));
-        }
+        channel.sendMessageToProxy(new ChannelListenerMessage<>(NetworkChannel.getChannel().getSelf(),
+                MessageType.Listener.UNREGISTER_SERVER, channel.getServerName()));
         if (thread.isAlive()) {
             thread.interrupt();
             channel.logInfo("[Channel] Network-channel stopped", true);
