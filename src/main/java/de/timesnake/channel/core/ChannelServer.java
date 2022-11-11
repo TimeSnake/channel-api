@@ -1,5 +1,5 @@
 /*
- * channel-api.main
+ * timesnake.channel-api.main
  * Copyright (C) 2022 timesnake
  *
  * This program is free software; you can redistribute it and/or
@@ -140,7 +140,7 @@ public abstract class ChannelServer implements Runnable {
             String inMsg;
             while ((inMsg = socketReader.readLine()) != null) {
                 this.logger.logInfo("Message received: " + inMsg);
-                String[] args = inMsg.split(ChannelMessage.DIVIDER);
+                String[] args = inMsg.split(ChannelMessage.DIVIDER, 4);
 
                 ChannelType<?> type = ChannelType.valueOf(args[0]);
                 if (ChannelType.LISTENER.equals(type)) {
