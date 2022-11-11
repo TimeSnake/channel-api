@@ -1,5 +1,5 @@
 /*
- * channel-api.main
+ * timesnake.channel-api.main
  * Copyright (C) 2022 timesnake
  *
  * This program is free software; you can redistribute it and/or
@@ -19,6 +19,8 @@
 package de.timesnake.channel.util.message;
 
 import de.timesnake.library.basic.util.Status;
+import de.timesnake.library.basic.util.Triple;
+import de.timesnake.library.basic.util.Tuple;
 
 import java.util.*;
 
@@ -71,8 +73,8 @@ public abstract class MessageType<Value> {
         public static final MessageType<Void> UNLOADED_ALL_WORLDS = new MessageTypeVoid("unloaded_all_worlds");
 
         public static final Set<MessageType<?>> TYPES = Set.of(STATUS, ONLINE_PLAYERS, MAX_PLAYERS, COMMAND,
-                PERMISSION, MAP, PASSWORD, OLD_PVP, STATE, CUSTOM, RESTART, DESTROY, KILL_DESTROY, DISCORD, USER_STATS, LOAD_WORLD,
-                UNLOAD_WORLD, LOADED_WORLD, UNLOADED_WORLD, UNLOADED_ALL_WORLDS);
+                PERMISSION, MAP, PASSWORD, OLD_PVP, STATE, CUSTOM, RESTART, DESTROY, KILL_DESTROY, DISCORD, USER_STATS,
+                LOAD_WORLD, UNLOAD_WORLD, LOADED_WORLD, UNLOADED_WORLD, UNLOADED_ALL_WORLDS);
 
         public static MessageType<?> valueOf(String name) {
             if (name == null) return null;
@@ -116,9 +118,11 @@ public abstract class MessageType<Value> {
                 return ChannelUserMessage.Sound.valueOf(value);
             }
         };
+        public static final MessageType<String> STORY_PLAY_AUDIO = new MessageTypeString("story_play_audio");
 
         public static final Set<MessageType<?>> TYPES = Set.of(STATUS, SERVICE, SWITCH_PORT, SWITCH_NAME, PERMISSION,
-                PUNISH, ALIAS, TASK, COMMAND, PROXY_COMMAND, PERM_GROUP, DISPLAY_GROUP, TEAM, STATISTICS, CUSTOM, SOUND);
+                PUNISH, ALIAS, TASK, COMMAND, PROXY_COMMAND, PERM_GROUP, DISPLAY_GROUP, TEAM, STATISTICS, CUSTOM, SOUND,
+                STORY_PLAY_AUDIO);
 
         public static MessageType<?> valueOf(String name) {
             if (name == null) return null;
@@ -482,6 +486,60 @@ public abstract class MessageType<Value> {
         @Override
         public UUID parseValue(String value) {
             return UUID.fromString(value);
+        }
+    }
+
+    public static class MessageTypeTuple<A, B> extends MessageType<Tuple<A, B>> {
+
+        private final MessageType<A> aMessageType;
+        private final MessageType<B> bMessageType;
+
+        public MessageTypeTuple(String name, MessageType<A> aMessageType, MessageType<B> bMessageType) {
+            super(name);
+            this.aMessageType = aMessageType;
+            this.bMessageType = bMessageType;
+        }
+
+        @Override
+        public String valueToString(Tuple<A, B> tuple) {
+            return this.aMessageType.valueToString(tuple.getA()) + ChannelMessage.DIVIDER +
+                    this.bMessageType.valueToString(tuple.getB());
+        }
+
+        @Override
+        public Tuple<A, B> parseValue(String tuple) {
+            String[] values = tuple.split(ChannelMessage.DIVIDER, 2);
+            return new Tuple<>(this.aMessageType.parseValue(values[0]), this.bMessageType.parseValue(values[1]));
+        }
+    }
+
+    public static class MessageTypeTriple<A, B, C> extends MessageType<Triple<A, B, C>> {
+
+        private final MessageType<A> aMessageType;
+        private final MessageType<B> bMessageType;
+        private final MessageType<C> cMessageType;
+
+        public MessageTypeTriple(String name, MessageType<A> aMessageType, MessageType<B> bMessageType,
+                                 MessageType<C> cMessageType) {
+            super(name);
+            this.aMessageType = aMessageType;
+            this.bMessageType = bMessageType;
+            this.cMessageType = cMessageType;
+        }
+
+        @Override
+        public String valueToString(Triple<A, B, C> tuple) {
+            return this.aMessageType.valueToString(tuple.getA()) + ChannelMessage.DIVIDER +
+                    this.bMessageType.valueToString(tuple.getB()) + ChannelMessage.DIVIDER +
+                    this.cMessageType.valueToString(tuple.getC());
+        }
+
+        @Override
+        public Triple<A, B, C> parseValue(String tuple) {
+            String[] values = tuple.split(ChannelMessage.DIVIDER, 3);
+            return new Triple<>(this.aMessageType.parseValue(values[0]),
+                    this.bMessageType.parseValue(values[1]),
+                    this.cMessageType.parseValue(values[2]));
         }
     }
 
