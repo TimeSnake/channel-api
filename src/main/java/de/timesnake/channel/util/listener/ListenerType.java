@@ -1,5 +1,5 @@
 /*
- * channel-api.main
+ * workspace.channel-api.main
  * Copyright (C) 2022 timesnake
  *
  * This program is free software; you can redistribute it and/or
@@ -83,10 +83,10 @@ public enum ListenerType {
     SUPPORT(ChannelType.SUPPORT, null, ChannelSupportMessage.class, Integer.class),
 
 
-    LISTENER_SERVER_NAME(ChannelType.LISTENER, MessageType.Listener.SERVER_NAME, ChannelListenerMessage.class,
-            Integer.class),
-    LISTENER_SERVER_MESSAGE_TYPE(ChannelType.LISTENER, MessageType.Listener.SERVER_MESSAGE_TYPE,
-            ChannelListenerMessage.class, MessageType.class),
+    LISTENER_IDENTIFIER_LISTENER(ChannelType.LISTENER, MessageType.Listener.IDENTIFIER_LISTENER, ChannelListenerMessage.class,
+            MessageType.MessageIdentifierListener.class),
+    LISTENER_MESSAGE_TYPE_LISTENER(ChannelType.LISTENER, MessageType.Listener.MESSAGE_TYPE_LISTENER,
+            ChannelListenerMessage.class, MessageType.MessageTypeListener.class),
     LISTENER_REGISTER(ChannelType.LISTENER, MessageType.Listener.REGISTER_SERVER, ChannelListenerMessage.class,
             Integer.class),
     LISTENER_UNREGISTER(ChannelType.LISTENER, MessageType.Listener.UNREGISTER_SERVER, ChannelListenerMessage.class,

@@ -1,5 +1,5 @@
 /*
- * channel-api.main
+ * workspace.channel-api.main
  * Copyright (C) 2022 timesnake
  *
  * This program is free software; you can redistribute it and/or
@@ -35,21 +35,28 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
- * This class manages all local channel listeners
+ * This class manages all and only local channel listeners
  */
 public abstract class Channel extends ChannelServer implements de.timesnake.channel.util.Channel {
 
     protected ConcurrentHashMap<Tuple<ChannelType<?>, MessageType<?>>, ConcurrentHashMap<ChannelListener,
             Set<Tuple<ChannelMessageFilter<?>, Method>>>> listeners = new ConcurrentHashMap<>();
 
-    public Channel(Thread mainThread, String serverName, Integer serverPort, Integer proxyPort, ChannelLogger logger) {
-        super(mainThread, serverName, serverPort, proxyPort, logger);
+    public Channel(Thread mainThread, String serverName, Integer serverPort, Integer proxyPort) {
+        super(mainThread, serverName, serverPort, proxyPort);
     }
 
     public void addListener(ChannelListener listener) {
         this.addListener(listener, null);
     }
 
+    /**
+     * Adds listener to local listener set.
+     * For server listener, a listener message is being sent to the proxy to register for the given server/messageType.
+     *
+     * @param listener
+     * @param filter
+     */
     public void addListener(ChannelListener listener, ChannelMessageFilter<?> filter) {
 
         Class<?> clazz = listener.getClass();
@@ -100,7 +107,8 @@ public abstract class Channel extends ChannelServer implements de.timesnake.chan
                                     this.sendListenerNames.add(name);
 
                                     this.sendMessage(new ChannelListenerMessage<>(this.self,
-                                            MessageType.Listener.SERVER_NAME, name));
+                                            MessageType.Listener.IDENTIFIER_LISTENER,
+                                            new MessageType.MessageIdentifierListener<>(ChannelType.SERVER, name)));
                                 }
                             } else {
                                 if (this.sendListenerMessageTypeAll || this.sendListenerMessageTypes.contains(type.getMessageType())) {
@@ -114,7 +122,8 @@ public abstract class Channel extends ChannelServer implements de.timesnake.chan
                                 }
 
                                 this.sendMessage(new ChannelListenerMessage<>(this.self,
-                                        MessageType.Listener.SERVER_MESSAGE_TYPE, type.getMessageType()));
+                                        MessageType.Listener.MESSAGE_TYPE_LISTENER,
+                                        new MessageType.MessageTypeListener(ChannelType.SERVER, type.getMessageType())));
                             }
                         }
 

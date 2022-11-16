@@ -1,5 +1,5 @@
 /*
- * channel-api.main
+ * workspace.channel-api.main
  * Copyright (C) 2022 timesnake
  *
  * This program is free software; you can redistribute it and/or
@@ -22,8 +22,13 @@ import de.timesnake.channel.util.listener.ChannelListener;
 import de.timesnake.channel.util.listener.ChannelMessageFilter;
 import de.timesnake.channel.util.listener.ListenerType;
 import de.timesnake.channel.util.message.ChannelMessage;
+import de.timesnake.library.basic.util.LogHelper;
+
+import java.util.logging.Logger;
 
 public interface Channel {
+
+    Logger LOGGER = LogHelper.getLogger("channel");
 
     void addListener(ChannelListener listener);
 
