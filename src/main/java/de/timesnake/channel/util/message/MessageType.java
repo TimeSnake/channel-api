@@ -1,5 +1,5 @@
 /*
- * timesnake.channel-api.main
+ * workspace.channel-api.main
  * Copyright (C) 2022 timesnake
  *
  * This program is free software; you can redistribute it and/or
@@ -18,6 +18,7 @@
 
 package de.timesnake.channel.util.message;
 
+import de.timesnake.channel.core.ChannelType;
 import de.timesnake.library.basic.util.Status;
 import de.timesnake.library.basic.util.Triple;
 import de.timesnake.library.basic.util.Tuple;
@@ -165,19 +166,27 @@ public abstract class MessageType<Value> {
     }
 
     public abstract static class Listener<Value> extends MessageType<Value> {
-
-
-        public static final MessageType<String> SERVER_NAME = new MessageTypeString("server_name");
-        public static final MessageType<MessageType<?>> SERVER_MESSAGE_TYPE = new MessageType<>("server_message_type") {
-
+        public static final MessageType<MessageIdentifierListener<?>> IDENTIFIER_LISTENER = new MessageType<>("identifier_listener") {
             @Override
-            public String valueToString(MessageType<?> server) {
-                return server != null ? server.getName() : null;
+            public String valueToString(MessageIdentifierListener<?> messageIdentifierListener) {
+                return messageIdentifierListener.toString();
             }
 
             @Override
-            public MessageType<?> parseValue(String value) {
-                return value != null ? Server.valueOf(value) : null;
+            public MessageIdentifierListener<?> parseValue(String value) {
+                return MessageIdentifierListener.fromString(value);
+            }
+        };
+
+        public static final MessageType<MessageTypeListener> MESSAGE_TYPE_LISTENER = new MessageType<>("message_type_listener") {
+            @Override
+            public String valueToString(MessageTypeListener messageTypeListener) {
+                return messageTypeListener.toString();
+            }
+
+            @Override
+            public MessageTypeListener parseValue(String value) {
+                return MessageTypeListener.fromString(value);
             }
         };
 
@@ -189,7 +198,7 @@ public abstract class MessageType<Value> {
 
         public static final MessageType<Void> CLOSE_SOCKET = new MessageTypeVoid("close_socket");
 
-        public static final Set<MessageType<?>> TYPES = Set.of(SERVER_NAME, SERVER_MESSAGE_TYPE, REGISTER_SERVER,
+        public static final Set<MessageType<?>> TYPES = Set.of(IDENTIFIER_LISTENER, MESSAGE_TYPE_LISTENER, REGISTER_SERVER,
                 UNREGISTER_SERVER, REGISTER_HOST, UNREGISTER_HOST, CLOSE_SOCKET);
 
         public static MessageType<?> valueOf(String name) {
@@ -540,6 +549,66 @@ public abstract class MessageType<Value> {
             return new Triple<>(this.aMessageType.parseValue(values[0]),
                     this.bMessageType.parseValue(values[1]),
                     this.cMessageType.parseValue(values[2]));
+        }
+    }
+
+    public static class MessageIdentifierListener<Identifier> {
+
+        public static <Identifier> MessageIdentifierListener<Identifier> fromString(String value) {
+            String[] s = value.split(ChannelMessage.DIVIDER);
+            ChannelType<Identifier> channelType = (ChannelType<Identifier>) ChannelType.valueOf(s[0]);
+            return new MessageIdentifierListener<>(channelType, channelType.parseIdentifier(s[1]));
+        }
+
+        private final ChannelType<Identifier> channelType;
+        private final Identifier identifier;
+
+        public MessageIdentifierListener(ChannelType<Identifier> channelType, Identifier identifier) {
+            this.channelType = channelType;
+            this.identifier = identifier;
+        }
+
+        public ChannelType<Identifier> getChannelType() {
+            return channelType;
+        }
+
+        public Identifier getIdentifier() {
+            return identifier;
+        }
+
+        @Override
+        public String toString() {
+            return this.channelType.getName() + ChannelMessage.DIVIDER + this.identifier.toString();
+        }
+    }
+
+    public static class MessageTypeListener {
+
+        public static MessageTypeListener fromString(String value) {
+            String[] s = value.split(ChannelMessage.DIVIDER);
+            ChannelType<?> channelType = ChannelType.valueOf(s[0]);
+            return new MessageTypeListener(channelType, channelType.parseMessageType(s[1]));
+        }
+
+        private final ChannelType<?> channelType;
+        private final MessageType<?> messageType;
+
+        public MessageTypeListener(ChannelType<?> channelType, MessageType<?> messageType) {
+            this.channelType = channelType;
+            this.messageType = messageType;
+        }
+
+        public ChannelType<?> getChannelType() {
+            return channelType;
+        }
+
+        public MessageType<?> getMessageType() {
+            return messageType;
+        }
+
+        @Override
+        public String toString() {
+            return this.channelType.getName() + ChannelMessage.DIVIDER + this.messageType.getName();
         }
     }
 

@@ -1,5 +1,5 @@
 /*
- * channel-api.main
+ * workspace.channel-api.main
  * Copyright (C) 2022 timesnake
  *
  * This program is free software; you can redistribute it and/or
@@ -122,7 +122,7 @@ public abstract class ChannelType<Identifier> {
         }
     };
 
-    public static final ChannelType<String> DISCORD = new ChannelType<String>("discord") {
+    public static final ChannelType<String> DISCORD = new ChannelType<>("discord") {
         @Override
         public String identifierToString(String integer) {
             return String.valueOf(integer);

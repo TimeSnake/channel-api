@@ -1,5 +1,5 @@
 /*
- * channel-api.main
+ * workspace.channel-api.main
  * Copyright (C) 2022 timesnake
  *
  * This program is free software; you can redistribute it and/or
@@ -27,7 +27,7 @@ public class NetworkChannel {
         NetworkChannel.channel = channel;
         thread = new Thread(channel);
         thread.start();
-        channel.logInfo("Network-channel started", true);
+        Channel.LOGGER.info("Network-channel started");
     }
 
     public static void stop() {
@@ -35,7 +35,7 @@ public class NetworkChannel {
                 MessageType.Listener.UNREGISTER_SERVER, channel.getServerName()));
         if (thread.isAlive()) {
             thread.interrupt();
-            channel.logInfo("[Channel] Network-channel stopped", true);
+            Channel.LOGGER.info("Network-channel stopped");
         }
     }
 
