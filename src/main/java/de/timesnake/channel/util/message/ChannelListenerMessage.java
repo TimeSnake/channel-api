@@ -1,5 +1,5 @@
 /*
- * channel-api.main
+ * workspace.channel-api.main
  * Copyright (C) 2022 timesnake
  *
  * This program is free software; you can redistribute it and/or
@@ -29,6 +29,13 @@ public class ChannelListenerMessage<Value> extends ChannelMessage<Host, Value> {
 
     public ChannelListenerMessage(Host host, MessageType<Value> type, Value value) {
         super(ChannelType.LISTENER, host, type, value);
+        if (!MessageType.Listener.TYPES.contains(type)) {
+            throw new InvalidMessageTypeException();
+        }
+    }
+
+    public ChannelListenerMessage(Host host, MessageType<Value> type) {
+        super(ChannelType.LISTENER, host, type);
         if (!MessageType.Listener.TYPES.contains(type)) {
             throw new InvalidMessageTypeException();
         }

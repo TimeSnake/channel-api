@@ -30,6 +30,10 @@ public interface Channel {
 
     Logger LOGGER = LogHelper.getLogger("channel");
 
+    static Channel getInstance() {
+        return de.timesnake.channel.core.Channel.getInstance();
+    }
+
     void addListener(ChannelListener listener);
 
     void addListener(ChannelListener listener, ChannelMessageFilter<?> filter);

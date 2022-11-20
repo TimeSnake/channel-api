@@ -18,133 +18,117 @@
 
 package de.timesnake.channel.core;
 
-import de.timesnake.channel.util.listener.*;
+import de.timesnake.channel.util.listener.ChannelListener;
+import de.timesnake.channel.util.listener.ChannelMessageFilter;
+import de.timesnake.channel.util.listener.ListenerType;
 import de.timesnake.channel.util.message.ChannelListenerMessage;
 import de.timesnake.channel.util.message.ChannelMessage;
 import de.timesnake.channel.util.message.ChannelPingMessage;
 import de.timesnake.channel.util.message.MessageType;
-import de.timesnake.library.basic.util.Tuple;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
+public abstract class Channel implements de.timesnake.channel.util.Channel {
 
-/**
- * This class manages all and only local channel listeners
- */
-public abstract class Channel extends ChannelServer implements de.timesnake.channel.util.Channel {
+    public static final String PROXY_NAME = "proxy";
 
-    protected ConcurrentHashMap<Tuple<ChannelType<?>, MessageType<?>>, ConcurrentHashMap<ChannelListener,
-            Set<Tuple<ChannelMessageFilter<?>, Method>>>> listeners = new ConcurrentHashMap<>();
+    public static final Integer ADD = 10000;
 
-    public Channel(Thread mainThread, String serverName, Integer serverPort, Integer proxyPort) {
-        super(mainThread, serverName, serverPort, proxyPort);
+    public static Channel getInstance() {
+        return instance;
     }
 
-    public void addListener(ChannelListener listener) {
-        this.addListener(listener, null);
+    public static void setInstance(Channel channel) {
+        if (instance == null) {
+            instance = channel;
+        }
     }
 
-    /**
-     * Adds listener to local listener set.
-     * For server listener, a listener message is being sent to the proxy to register for the given server/messageType.
-     *
-     * @param listener
-     * @param filter
-     */
-    public void addListener(ChannelListener listener, ChannelMessageFilter<?> filter) {
+    protected static final String LISTEN_IP = "0.0.0.0";
+    protected static final String SERVER_IP = "127.0.0.1";
+    protected static final int CONNECTION_RETRIES = 3;
+    private static Channel instance;
 
-        Class<?> clazz = listener.getClass();
+    protected final Thread mainThread;
 
-        do {
-            for (Method method : clazz.getDeclaredMethods()) {
+    protected final String serverName;
+    protected final Integer serverPort;
+    protected final Host self;
 
-                if (method.isAnnotationPresent(ChannelHandler.class)) {
+    protected final Integer proxyPort;
+    protected final Host proxy;
 
-                    if (method.getParameters().length != 1) {
-                        throw new InconsistentChannelListenerException("invalid parameter size");
-                    }
+    protected ChannelServer server;
+    protected Thread serverThread;
 
-                    ChannelHandler annotation = method.getAnnotation(ChannelHandler.class);
-                    ListenerType[] methodTypes = annotation.type();
-                    for (ListenerType type : methodTypes) {
+    protected ChannelClient client;
 
-                        if (type.getMessageClass() != null && !type.getMessageClass().equals(method.getParameterTypes()[0])) {
-                            throw new InconsistentChannelListenerException("invalid message type");
-                        }
+    protected Channel(Thread mainThread, String serverName, int serverPort, int proxy) {
+        this.mainThread = mainThread;
 
-                        Set<Tuple<ChannelMessageFilter<?>, Method>> listenerMethods =
-                                this.listeners.computeIfAbsent(type.getTypeTuple(), k ->
-                                        new ConcurrentHashMap<>()).computeIfAbsent(listener,
-                                        k -> ConcurrentHashMap.newKeySet());
+        this.serverName = serverName;
+        this.serverPort = serverPort;
+        this.self = new Host(SERVER_IP, serverPort + ADD);
 
-                        if (annotation.filtered() && filter != null) {
-                            listenerMethods.add(new Tuple<>(filter, method));
-                        } else {
-                            listenerMethods.add(new Tuple<>(() -> null, method));
-                        }
+        this.proxyPort = proxy;
+        this.proxy = new Host(SERVER_IP, proxy + ADD);
 
-                        if (type.getChannelType().equals(ChannelType.SERVER)) {
-                            if (filter != null && filter.getIdentifierFilter() != null) {
-                                Collection<String> identifiers;
+        this.loadChannelServer();
+        this.loadChannelClient();
+    }
 
-                                try {
-                                    identifiers = (Collection<String>) filter.getIdentifierFilter();
-                                } catch (ClassCastException e) {
-                                    throw new InconsistentChannelListenerException("invalid filter type");
-                                }
-
-                                for (String name : identifiers) {
-                                    if (this.sendListenerNames.contains(name)) {
-                                        continue;
-                                    }
-
-                                    this.sendListenerNames.add(name);
-
-                                    this.sendMessage(new ChannelListenerMessage<>(this.self,
-                                            MessageType.Listener.IDENTIFIER_LISTENER,
-                                            new MessageType.MessageIdentifierListener<>(ChannelType.SERVER, name)));
-                                }
-                            } else {
-                                if (this.sendListenerMessageTypeAll || this.sendListenerMessageTypes.contains(type.getMessageType())) {
-                                    continue;
-                                }
-
-                                if (type.getMessageType() == null) {
-                                    this.sendListenerMessageTypeAll = true;
-                                } else {
-                                    this.sendListenerMessageTypes.add(type.getMessageType());
-                                }
-
-                                this.sendMessage(new ChannelListenerMessage<>(this.self,
-                                        MessageType.Listener.MESSAGE_TYPE_LISTENER,
-                                        new MessageType.MessageTypeListener(ChannelType.SERVER, type.getMessageType())));
-                            }
-                        }
-
-                    }
-                }
+    protected void loadChannelServer() {
+        this.server = new ChannelServer(this) {
+            @Override
+            public void runSync(SyncRun syncRun) {
+                Channel.this.runSync(syncRun);
             }
 
-            clazz = clazz.getSuperclass();
+            @Override
+            protected void handlePingMessage(ChannelPingMessage msg) {
+                Channel.this.handlePingMessage(msg);
+            }
 
-
-        } while (clazz != null && ChannelListener.class.isAssignableFrom(clazz));
+            @Override
+            protected void handleRemoteListenerMessage(ChannelListenerMessage<?> msg) {
+                Channel.this.handleRemoteListenerMessage(msg);
+            }
+        };
     }
 
-    public void removeListener(ChannelListener listener, ListenerType... types) {
-        Collection<ConcurrentHashMap<ChannelListener, ?>> listeners =
-                this.listeners.entrySet().stream().filter(t -> types.length == 0
-                        || Arrays.stream(types).anyMatch(type -> t.getKey().equals(type.getTypeTuple()))).map(Map.Entry::getValue).collect(Collectors.toList());
+    public void start() {
+        this.serverThread = new Thread(this.server);
+        this.serverThread.start();
+        de.timesnake.channel.util.Channel.LOGGER.info("Network-channel started");
+    }
 
-        for (ConcurrentHashMap<ChannelListener, ?> listenerMethods : listeners) {
-            listenerMethods.remove(listener);
+    public void stop() {
+        this.client.sendMessageToProxy(new ChannelListenerMessage<>(this.getSelf(),
+                MessageType.Listener.UNREGISTER_SERVER, this.getServerName()));
+        if (this.serverThread.isAlive()) {
+            this.serverThread.interrupt();
+            de.timesnake.channel.util.Channel.LOGGER.info("Network-channel stopped");
         }
+    }
+
+    protected void handleRemoteListenerMessage(ChannelListenerMessage<?> msg) {
+        this.client.handleRemoteListenerMessage(msg);
+    }
+
+    protected void loadChannelClient() {
+        this.client = new ChannelClient(this);
+    }
+
+    protected abstract void runSync(SyncRun syncRun);
+
+    protected void handlePingMessage(ChannelPingMessage msg) {
+        this.client.sendPongMessage();
+    }
+
+    public Thread getMainThread() {
+        return mainThread;
+    }
+
+    public String getServerName() {
+        return serverName;
     }
 
     public Host getSelf() {
@@ -155,51 +139,43 @@ public abstract class Channel extends ChannelServer implements de.timesnake.chan
         return proxy;
     }
 
-    @Deprecated
-    public Integer getServerPort() {
-        return serverPort;
+    public void sendMessage(ChannelMessage<?, ?> message) {
+        this.client.sendMessage(message);
     }
 
-    public String getServerName() {
-        return serverName;
+    public void sendMessageToProxy(ChannelMessage<?, ?> message) {
+        this.client.sendMessageToProxy(message);
     }
 
-    public Integer getProxyPort() {
-        return proxyPort;
-    }
-
-    public String getProxyName() {
-        return PROXY_NAME;
+    protected void sendListenerMessage(ListenerType type, ChannelMessageFilter<?> filter) {
+        this.client.sendListenerMessage(type, filter);
     }
 
     @Override
-    protected void handleMessage(ChannelMessage<?, ?> msg) {
-
-        Set<Map.Entry<ChannelListener, Set<Tuple<ChannelMessageFilter<?>, Method>>>> set =
-                this.listeners.getOrDefault(new Tuple<>(msg.getChannelType(), msg.getMessageType()),
-                        new ConcurrentHashMap<>()).entrySet();
-        set.addAll(this.listeners.getOrDefault(new Tuple<>(msg.getChannelType(), null), new ConcurrentHashMap<>()).entrySet());
-        set.addAll(this.listeners.getOrDefault(new Tuple<>(null, null), new ConcurrentHashMap<>()).entrySet());
-
-        for (Map.Entry<ChannelListener, Set<Tuple<ChannelMessageFilter<?>, Method>>> subSet : set) {
-            for (Tuple<ChannelMessageFilter<?>, Method> entry : subSet.getValue()) {
-                ChannelListener listener = subSet.getKey();
-                ChannelMessageFilter<?> filter = entry.getA();
-                Method method = entry.getB();
-
-                if (filter == null || filter.getIdentifierFilter() == null || filter.getIdentifierFilter().contains(msg.getIdentifier())) {
-                    try {
-                        method.invoke(listener, msg);
-                    } catch (IllegalAccessException | InvocationTargetException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }
+    public void addListener(ChannelListener listener) {
+        this.server.addLocalListener(listener);
     }
 
     @Override
-    protected void handlePingMessage(ChannelPingMessage message) {
-        this.sendMessageToProxy(new ChannelPingMessage(this.getServerName(), MessageType.Ping.PONG));
+    public void addListener(ChannelListener listener, ChannelMessageFilter<?> filter) {
+        this.server.addLocalListener(listener, filter);
+    }
+
+    @Override
+    public void removeListener(ChannelListener listener, ListenerType... types) {
+        this.server.removeListener(listener, types);
+    }
+
+    @Override
+    public void sendMessageSynchronized(ChannelMessage<?, ?> message) {
+        this.client.sendMessageSynchronized(message);
+    }
+
+    public ChannelServer getServer() {
+        return server;
+    }
+
+    public ChannelClient getClient() {
+        return client;
     }
 }
