@@ -119,11 +119,14 @@ public abstract class MessageType<Value> {
                 return ChannelUserMessage.Sound.valueOf(value);
             }
         };
+        public static final MessageType<Integer> STORY_START = new MessageTypeInteger("story_start");
+        public static final MessageType<Integer> STORY_END = new MessageTypeInteger("story_end");
         public static final MessageType<String> STORY_PLAY_AUDIO = new MessageTypeString("story_play_audio");
+        public static final MessageType<String> STORY_END_AUDIO = new MessageTypeString("story_end_audio");
 
         public static final Set<MessageType<?>> TYPES = Set.of(STATUS, SERVICE, SWITCH_PORT, SWITCH_NAME, PERMISSION,
                 PUNISH, ALIAS, TASK, COMMAND, PROXY_COMMAND, PERM_GROUP, DISPLAY_GROUP, TEAM, STATISTICS, CUSTOM, SOUND,
-                STORY_PLAY_AUDIO);
+                STORY_START, STORY_END, STORY_PLAY_AUDIO, STORY_END_AUDIO);
 
         public static MessageType<?> valueOf(String name) {
             if (name == null) return null;
