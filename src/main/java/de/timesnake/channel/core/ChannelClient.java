@@ -270,6 +270,8 @@ public class ChannelClient {
                 socketWriter.write(System.lineSeparator());
                 socketWriter.flush();
                 de.timesnake.channel.util.Channel.LOGGER.info("Message send to " + host + ": '" + message.toStream() + "'");
+            } else {
+                this.sendMessageSynchronized(host, message, retry + 1);
             }
         } catch (IOException ignored) {
         }

@@ -171,6 +171,11 @@ public abstract class Channel implements de.timesnake.channel.util.Channel {
         this.client.sendMessageSynchronized(message);
     }
 
+    @Override
+    public Host getHost() {
+        return this.self;
+    }
+
     public ChannelServer getServer() {
         return server;
     }

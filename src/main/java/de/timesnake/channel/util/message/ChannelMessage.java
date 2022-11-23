@@ -1,5 +1,5 @@
 /*
- * timesnake.channel-api.main
+ * workspace.channel-api.main
  * Copyright (C) 2022 timesnake
  *
  * This program is free software; you can redistribute it and/or
@@ -56,10 +56,11 @@ public abstract class ChannelMessage<Identifier, Value> {
     }
 
     public String toStream() {
-        return this.channelType.getName() +
-                ChannelMessage.DIVIDER + this.messageType.getName() +
-                ChannelMessage.DIVIDER + this.channelType.identifierToString(this.identifier) +
-                ChannelMessage.DIVIDER + this.messageType.valueToString(this.value);
+        return String.join(DIVIDER,
+                this.channelType.getName(),
+                this.messageType.getName(),
+                this.channelType.identifierToString(this.identifier),
+                this.messageType.valueToString(this.value));
     }
 
     public ChannelType<Identifier> getChannelType() {

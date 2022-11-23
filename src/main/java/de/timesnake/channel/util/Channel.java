@@ -18,6 +18,7 @@
 
 package de.timesnake.channel.util;
 
+import de.timesnake.channel.core.Host;
 import de.timesnake.channel.util.listener.ChannelListener;
 import de.timesnake.channel.util.listener.ChannelMessageFilter;
 import de.timesnake.channel.util.listener.ListenerType;
@@ -43,4 +44,6 @@ public interface Channel {
     void sendMessage(ChannelMessage<?, ?> message);
 
     void sendMessageSynchronized(ChannelMessage<?, ?> message);
+
+    Host getHost();
 }
