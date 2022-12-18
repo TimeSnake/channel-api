@@ -480,7 +480,7 @@ public abstract class MessageType<Value> {
 
         @Override
         public Type parseValue(String value) {
-            return Status.parseStatus(value);
+            return Status.valueOf(value);
         }
     }
 
