@@ -4,88 +4,38 @@
 
 package de.timesnake.channel.core;
 
-import de.timesnake.channel.util.listener.ChannelListener;
-import de.timesnake.channel.util.listener.ChannelMessageFilter;
-import de.timesnake.channel.util.listener.ListenerType;
 import de.timesnake.channel.util.message.ChannelListenerMessage;
 import de.timesnake.channel.util.message.ChannelMessage;
 import de.timesnake.channel.util.message.ChannelPingMessage;
 import de.timesnake.channel.util.message.MessageType;
+import de.timesnake.channel.util.message.MessageType.MessageIdentifierListener;
+import de.timesnake.channel.util.message.MessageType.MessageTypeListener;
+import java.io.IOException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
+import java.util.logging.SocketHandler;
 
-public abstract class Channel implements de.timesnake.channel.util.Channel {
+public abstract class Channel extends ChannelBasis {
 
     public static final String PROXY_NAME = "proxy";
 
     public static final Integer ADD = 10000;
 
     public static Channel getInstance() {
-        return instance;
+        return (Channel) ChannelBasis.getInstance();
     }
-
-    public static void setInstance(Channel channel) {
-        if (instance == null) {
-            instance = channel;
-        }
-    }
-
-    protected static final String LISTEN_IP = "0.0.0.0";
-    protected static final String SERVER_IP = "127.0.0.1";
-    protected static final int CONNECTION_RETRIES = 3;
-    private static Channel instance;
-
-    protected final Thread mainThread;
 
     protected final String serverName;
     protected final Integer serverPort;
-    protected final Host self;
-
-    protected final Integer proxyPort;
-    protected final Host proxy;
-
-    protected ChannelServer server;
-    protected Thread serverThread;
-
-    protected ChannelClient client;
 
     protected Channel(Thread mainThread, String serverName, int serverPort, int proxy) {
-        this.mainThread = mainThread;
+        super(mainThread, serverPort + ADD, proxy + ADD);
 
         this.serverName = serverName;
         this.serverPort = serverPort;
-        this.self = new Host(SERVER_IP, serverPort + ADD);
-
-        this.proxyPort = proxy;
-        this.proxy = new Host(SERVER_IP, proxy + ADD);
-
-        this.loadChannelServer();
-        this.loadChannelClient();
     }
 
-    protected void loadChannelServer() {
-        this.server = new ChannelServer(this) {
-            @Override
-            public void runSync(SyncRun syncRun) {
-                Channel.this.runSync(syncRun);
-            }
-
-            @Override
-            protected void handlePingMessage(ChannelPingMessage msg) {
-                Channel.this.handlePingMessage(msg);
-            }
-
-            @Override
-            protected void handleRemoteListenerMessage(ChannelListenerMessage<?> msg) {
-                Channel.this.handleRemoteListenerMessage(msg);
-            }
-        };
-    }
-
-    public void start() {
-        this.serverThread = new Thread(this.server);
-        this.serverThread.start();
-        de.timesnake.channel.util.Channel.LOGGER.info("Network-channel started");
-    }
-
+    @Override
     public void stop() {
         this.client.sendMessageToProxy(new ChannelListenerMessage<>(this.getSelf(),
                 MessageType.Listener.UNREGISTER_SERVER, this.getServerName()));
@@ -95,78 +45,136 @@ public abstract class Channel implements de.timesnake.channel.util.Channel {
         }
     }
 
-    protected void handleRemoteListenerMessage(ChannelListenerMessage<?> msg) {
-        this.client.handleRemoteListenerMessage(msg);
+    @Override
+    protected void loadChannelServer() {
+        this.server = new ServerChannelServer(this);
     }
 
+    @Override
     protected void loadChannelClient() {
-        this.client = new ChannelClient(this);
-    }
-
-    protected abstract void runSync(SyncRun syncRun);
-
-    protected void handlePingMessage(ChannelPingMessage msg) {
-        this.client.sendPongMessage();
-    }
-
-    public Thread getMainThread() {
-        return mainThread;
+        this.client = new ServerChannelClient(this);
     }
 
     public String getServerName() {
         return serverName;
     }
 
-    public Host getSelf() {
-        return self;
+    public Integer getServerPort() {
+        return serverPort;
     }
 
-    public Host getProxy() {
-        return proxy;
+    public static class ServerChannelServer extends ChannelServer {
+
+        protected ServerChannelServer(Channel manager) {
+            super(manager);
+        }
+
+        @Override
+        public void runSync(SyncRun syncRun) {
+            this.manager.runSync(syncRun);
+        }
+
+        @Override
+        protected void handlePingMessage(ChannelPingMessage msg) {
+            ((ServerChannelClient) this.manager.client).sendPongMessage();
+        }
+
+        @Override
+        protected void handleRemoteListenerMessage(ChannelListenerMessage<?> msg) {
+            ((ServerChannelClient) this.manager.client).handleRemoteListenerMessage(msg);
+        }
     }
 
-    public void sendMessage(ChannelMessage<?, ?> message) {
-        this.client.sendMessage(message);
-    }
+    public static class ServerChannelClient extends ChannelClient {
 
-    public void sendMessageToProxy(ChannelMessage<?, ?> message) {
-        this.client.sendMessageToProxy(message);
-    }
+        public ServerChannelClient(Channel manager) {
+            super(manager);
+        }
 
-    protected void sendListenerMessage(ListenerType type, ChannelMessageFilter<?> filter) {
-        this.client.sendListenerMessage(type, filter);
-    }
+        public synchronized void handleRemoteListenerMessage(ChannelListenerMessage<?> msg) {
+            if (msg.getMessageType().equals(MessageType.Listener.IDENTIFIER_LISTENER)
+                    || msg.getMessageType().equals(MessageType.Listener.MESSAGE_TYPE_LISTENER)) {
+                this.addRemoteListener(msg);
+            } else if (msg.getMessageType().equals(MessageType.Listener.REGISTER_SERVER)
+                    && msg.getSenderHost().equals(this.manager.getProxy())) {
+                de.timesnake.channel.util.Channel.LOGGER.info("Receiving of listeners finished");
+                this.listenerLoaded = true;
+                for (ChannelMessage<?, ?> serverMsg : this.messageStash) {
+                    this.manager.sendMessage(serverMsg);
+                }
+                this.messageStash.clear();
+            } else if (msg.getMessageType().equals(MessageType.Listener.UNREGISTER_SERVER)) {
+                Host host = msg.getSenderHost();
 
-    @Override
-    public void addListener(ChannelListener listener) {
-        this.server.addLocalListener(listener);
-    }
+                if (host != null) {
+                    this.listenerHostByMessageTypeByChannelType.forEach((k, v) -> v.remove(host));
+                    de.timesnake.channel.util.Channel.LOGGER.info("Removed listener " + host);
+                }
 
-    @Override
-    public void addListener(ChannelListener listener, ChannelMessageFilter<?> filter) {
-        this.server.addLocalListener(listener, filter);
-    }
+                this.disconnectHost(host);
+            }
+        }
 
-    @Override
-    public void removeListener(ChannelListener listener, ListenerType... types) {
-        this.server.removeListener(listener, types);
-    }
+        public void addRemoteListener(ChannelListenerMessage<?> msg) {
+            Host senderHost = msg.getSenderHost();
 
-    @Override
-    public void sendMessageSynchronized(ChannelMessage<?, ?> message) {
-        this.client.sendMessageSynchronized(message);
-    }
+            if (senderHost.equals(this.manager.getSelf())) {
+                return;
+            }
 
-    @Override
-    public Host getHost() {
-        return this.self;
-    }
+            if (msg.getMessageType().equals(MessageType.Listener.IDENTIFIER_LISTENER)) {
+                if (((MessageIdentifierListener<?>) msg.getValue()).getChannelType()
+                        .equals(ChannelType.LOGGING)) {
+                    this.addLogListener(msg.getSenderHost());
+                    return;
+                }
+                // prevent registration of server listener, which not belongs to this server
+                else if (
+                        ((MessageType.MessageIdentifierListener<?>) msg.getValue()).getChannelType()
+                                .equals(ChannelType.SERVER)
+                                && !((MessageType.MessageIdentifierListener<?>) msg.getValue()).getIdentifier()
+                                .equals(((Channel) this.manager).getServerName())) {
+                    return;
+                }
 
-    public ChannelServer getServer() {
-        return server;
-    }
+                this.listenerHostByIdentifierByChannelType.get(
+                                ((MessageType.MessageIdentifierListener<?>) msg.getValue()).getChannelType())
+                        .computeIfAbsent(
+                                ((MessageType.MessageIdentifierListener<?>) msg.getValue()).getIdentifier(),
+                                k -> ConcurrentHashMap.newKeySet()).add(senderHost);
+            } else if (msg.getMessageType().equals(MessageType.Listener.MESSAGE_TYPE_LISTENER)) {
+                if (((MessageTypeListener) msg.getValue()).getChannelType()
+                        .equals(ChannelType.LOGGING)) {
+                    this.addLogListener(msg.getSenderHost());
+                    return;
+                }
 
-    public ChannelClient getClient() {
-        return client;
+                this.listenerHostByMessageTypeByChannelType.get(
+                                ((MessageType.MessageTypeListener) msg.getValue()).getChannelType())
+                        .computeIfAbsent(
+                                ((MessageType.MessageTypeListener) msg.getValue()).getMessageType(),
+                                k -> ConcurrentHashMap.newKeySet()).add(senderHost);
+            }
+
+            de.timesnake.channel.util.Channel.LOGGER.info(
+                    "Added remote listener from '" + msg.getSenderHost() + "'");
+        }
+
+        protected void addLogListener(Host host) {
+            Logger logger = Logger.getLogger("");
+            try {
+                logger.addHandler(new SocketHandler(host.getHostname(), host.getPort()));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            de.timesnake.channel.util.Channel.LOGGER.info(
+                    "Added remote log listener from '" + host + "'");
+        }
+
+        protected void sendPongMessage() {
+            this.sendMessageToProxy(
+                    new ChannelPingMessage(((Channel) this.manager).getServerName(),
+                            MessageType.Ping.PONG));
+        }
     }
 }

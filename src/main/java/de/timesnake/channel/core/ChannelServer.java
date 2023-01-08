@@ -4,10 +4,21 @@
 
 package de.timesnake.channel.core;
 
-import de.timesnake.channel.util.listener.*;
-import de.timesnake.channel.util.message.*;
+import de.timesnake.channel.util.listener.ChannelHandler;
+import de.timesnake.channel.util.listener.ChannelListener;
+import de.timesnake.channel.util.listener.ChannelMessageFilter;
+import de.timesnake.channel.util.listener.InconsistentChannelListenerException;
+import de.timesnake.channel.util.listener.ListenerType;
+import de.timesnake.channel.util.message.ChannelDiscordMessage;
+import de.timesnake.channel.util.message.ChannelGroupMessage;
+import de.timesnake.channel.util.message.ChannelListenerMessage;
+import de.timesnake.channel.util.message.ChannelMessage;
+import de.timesnake.channel.util.message.ChannelPingMessage;
+import de.timesnake.channel.util.message.ChannelServerMessage;
+import de.timesnake.channel.util.message.ChannelSupportMessage;
+import de.timesnake.channel.util.message.ChannelUserMessage;
+import de.timesnake.channel.util.message.MessageType;
 import de.timesnake.library.basic.util.Tuple;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
@@ -24,12 +35,12 @@ import java.util.stream.Collectors;
 
 public abstract class ChannelServer implements Runnable {
 
-    protected final Channel manager;
+    protected final ChannelBasis manager;
 
     protected ConcurrentHashMap<Tuple<ChannelType<?>, MessageType<?>>, ConcurrentHashMap<ChannelListener,
             Set<Tuple<ChannelMessageFilter<?>, Method>>>> listeners = new ConcurrentHashMap<>();
 
-    protected ChannelServer(Channel manager) {
+    protected ChannelServer(ChannelBasis manager) {
         this.manager = manager;
     }
 
@@ -108,7 +119,8 @@ public abstract class ChannelServer implements Runnable {
             } else if (ChannelType.DISCORD.equals(type)) {
                 msg = new ChannelDiscordMessage<>(args);
             } else {
-                de.timesnake.channel.util.Channel.LOGGER.warning("Error while reading channel type: '" + args[0] + "'");
+                de.timesnake.channel.util.Channel.LOGGER.warning(
+                        "Error while reading channel type: '" + args[0] + "'");
             }
 
             if (msg != null) {
@@ -121,8 +133,10 @@ public abstract class ChannelServer implements Runnable {
         Set<Map.Entry<ChannelListener, Set<Tuple<ChannelMessageFilter<?>, Method>>>> set =
                 this.listeners.getOrDefault(new Tuple<>(msg.getChannelType(), msg.getMessageType()),
                         new ConcurrentHashMap<>()).entrySet();
-        set.addAll(this.listeners.getOrDefault(new Tuple<>(msg.getChannelType(), null), new ConcurrentHashMap<>()).entrySet());
-        set.addAll(this.listeners.getOrDefault(new Tuple<>(null, null), new ConcurrentHashMap<>()).entrySet());
+        set.addAll(this.listeners.getOrDefault(new Tuple<>(msg.getChannelType(), null),
+                new ConcurrentHashMap<>()).entrySet());
+        set.addAll(this.listeners.getOrDefault(new Tuple<>(null, null), new ConcurrentHashMap<>())
+                .entrySet());
 
         for (Map.Entry<ChannelListener, Set<Tuple<ChannelMessageFilter<?>, Method>>> subSet : set) {
             for (Tuple<ChannelMessageFilter<?>, Method> entry : subSet.getValue()) {
@@ -130,7 +144,8 @@ public abstract class ChannelServer implements Runnable {
                 ChannelMessageFilter<?> filter = entry.getA();
                 Method method = entry.getB();
 
-                if (filter == null || filter.getIdentifierFilter() == null || filter.getIdentifierFilter().contains(msg.getIdentifier())) {
+                if (filter == null || filter.getIdentifierFilter() == null
+                        || filter.getIdentifierFilter().contains(msg.getIdentifier())) {
                     try {
                         method.invoke(listener, msg);
                     } catch (IllegalAccessException | InvocationTargetException e) {
@@ -143,9 +158,13 @@ public abstract class ChannelServer implements Runnable {
 
     public abstract void runSync(SyncRun syncRun);
 
-    protected abstract void handlePingMessage(ChannelPingMessage msg);
+    protected void handlePingMessage(ChannelPingMessage msg) {
 
-    protected abstract void handleRemoteListenerMessage(ChannelListenerMessage<?> msg);
+    }
+
+    protected void handleRemoteListenerMessage(ChannelListenerMessage<?> msg) {
+
+    }
 
     public void addLocalListener(ChannelListener listener) {
         this.addLocalListener(listener, null);
@@ -168,7 +187,8 @@ public abstract class ChannelServer implements Runnable {
                     ListenerType[] methodTypes = annotation.type();
                     for (ListenerType type : methodTypes) {
 
-                        if (type.getMessageClass() != null && !type.getMessageClass().equals(method.getParameterTypes()[0])) {
+                        if (type.getMessageClass() != null
+                                && !type.getMessageClass().equals(method.getParameterTypes()[0])) {
                             throw new InconsistentChannelListenerException("invalid message type");
                         }
 
@@ -198,7 +218,9 @@ public abstract class ChannelServer implements Runnable {
     public void removeListener(ChannelListener listener, ListenerType... types) {
         Collection<ConcurrentHashMap<ChannelListener, ?>> listeners =
                 this.listeners.entrySet().stream().filter(t -> types.length == 0
-                        || Arrays.stream(types).anyMatch(type -> t.getKey().equals(type.getTypeTuple()))).map(Map.Entry::getValue).collect(Collectors.toList());
+                                || Arrays.stream(types)
+                                .anyMatch(type -> t.getKey().equals(type.getTypeTuple())))
+                        .map(Map.Entry::getValue).collect(Collectors.toList());
 
         for (ConcurrentHashMap<ChannelListener, ?> listenerMethods : listeners) {
             listenerMethods.remove(listener);

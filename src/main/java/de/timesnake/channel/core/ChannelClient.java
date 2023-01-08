@@ -9,9 +9,8 @@ import de.timesnake.channel.util.listener.InconsistentChannelListenerException;
 import de.timesnake.channel.util.listener.ListenerType;
 import de.timesnake.channel.util.message.ChannelListenerMessage;
 import de.timesnake.channel.util.message.ChannelMessage;
-import de.timesnake.channel.util.message.ChannelPingMessage;
 import de.timesnake.channel.util.message.MessageType;
-
+import de.timesnake.channel.util.message.MessageType.Listener;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
@@ -19,6 +18,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
+import java.util.logging.SocketHandler;
 
 /**
  * This class manages all and only local channel listeners
@@ -28,7 +29,8 @@ public class ChannelClient {
     /**
      * Checks if server is interested in message.
      * <p>
-     * If message is server identifier listener, when check if listener identifier is equals with receiver server name.
+     * If message is server identifier listener, when check if listener identifier is equals with
+     * receiver server name.
      * </p>
      *
      * @param host       Host to send to
@@ -36,10 +38,13 @@ public class ChannelClient {
      * @param msg        Listener message, which is sent
      * @return true if message is interesting for server, else false
      */
-    public static boolean isInterestingForServer(Host host, String serverName, ChannelListenerMessage<?> msg) {
+    public static boolean isInterestingForServer(Host host, String serverName,
+            ChannelListenerMessage<?> msg) {
         if (msg.getMessageType().equals(MessageType.Listener.IDENTIFIER_LISTENER)) {
-            if (((MessageType.MessageIdentifierListener<?>) msg.getValue()).getChannelType().equals(ChannelType.SERVER)) {
-                if (!serverName.equals(((MessageType.MessageIdentifierListener<?>) msg.getValue()).getIdentifier())) {
+            if (((MessageType.MessageIdentifierListener<?>) msg.getValue()).getChannelType()
+                    .equals(ChannelType.SERVER)) {
+                if (!serverName.equals(
+                        ((MessageType.MessageIdentifierListener<?>) msg.getValue()).getIdentifier())) {
                     return false;
                 }
             }
@@ -47,12 +52,16 @@ public class ChannelClient {
         return !msg.getSenderHost().equals(host);
     }
 
-    protected final Channel manager;
+    protected final ChannelBasis manager;
 
     // Already send server messages
     protected Set<String> sendListenerNames = ConcurrentHashMap.newKeySet();
     protected boolean sendListenerMessageTypeAll = false;
     protected Set<MessageType<?>> sendListenerMessageTypes = ConcurrentHashMap.newKeySet();
+
+    // Already send log messages
+    protected Set<String> sendLoggingListeners = ConcurrentHashMap.newKeySet();
+    protected boolean sendLoggingListenerAll = false;
 
     /**
      * Only for servers, which are interested
@@ -64,13 +73,14 @@ public class ChannelClient {
 
 
     protected ConcurrentHashMap<Host, Socket> socketByHost = new ConcurrentHashMap<>();
+    protected Set<Socket> loggingSockets = ConcurrentHashMap.newKeySet();
 
     // stash until server is registered
     protected boolean listenerLoaded = false;
     protected Set<ChannelMessage<?, ?>> messageStash = ConcurrentHashMap.newKeySet();
 
 
-    public ChannelClient(Channel manager) {
+    public ChannelClient(ChannelBasis manager) {
         this.manager = manager;
 
         for (ChannelType<?> type : ChannelType.TYPES) {
@@ -105,7 +115,9 @@ public class ChannelClient {
                             new MessageType.MessageIdentifierListener<>(ChannelType.SERVER, name)));
                 }
             } else {
-                if (this.sendListenerMessageTypeAll || this.sendListenerMessageTypes.contains(type.getMessageType())) {
+                if (this.sendListenerMessageTypeAll ||
+                        (type.getMessageType() != null && this.sendListenerMessageTypes.contains(
+                                type.getMessageType()))) {
                     return;
                 }
 
@@ -117,58 +129,59 @@ public class ChannelClient {
 
                 this.sendMessage(new ChannelListenerMessage<>(this.manager.getSelf(),
                         MessageType.Listener.MESSAGE_TYPE_LISTENER,
-                        new MessageType.MessageTypeListener(ChannelType.SERVER, type.getMessageType())));
+                        new MessageType.MessageTypeListener(ChannelType.SERVER,
+                                type.getMessageType())));
+            }
+        } else if (type.getChannelType().equals(ChannelType.LOGGING)) {
+            if (filter != null && filter.getIdentifierFilter() != null) {
+                Collection<String> identifiers;
+
+                try {
+                    identifiers = (Collection<String>) filter.getIdentifierFilter();
+                } catch (ClassCastException e) {
+                    throw new InconsistentChannelListenerException("invalid filter type");
+                }
+
+                for (String name : identifiers) {
+                    if (this.sendLoggingListeners.contains(name)) {
+                        continue;
+                    }
+
+                    this.sendLoggingListeners.add(name);
+
+                    this.sendMessage(new ChannelListenerMessage<>(this.manager.getSelf(),
+                            Listener.IDENTIFIER_LISTENER,
+                            new MessageType.MessageIdentifierListener<>(ChannelType.LOGGING,
+                                    name)));
+                }
+            } else {
+                if (this.sendLoggingListenerAll ||
+                        (type.getMessageType() != null && this.sendListenerMessageTypes.contains(
+                                type.getMessageType()))) {
+                    return;
+                }
+
+                if (type.getMessageType() == null) {
+                    this.sendLoggingListenerAll = true;
+                } else {
+                    this.sendListenerMessageTypes.add(type.getMessageType());
+                }
+
+                this.sendMessage(new ChannelListenerMessage<>(this.manager.getSelf(),
+                        Listener.MESSAGE_TYPE_LISTENER,
+                        new MessageType.MessageTypeListener(ChannelType.LOGGING,
+                                type.getMessageType())));
             }
         }
     }
 
-    protected synchronized void handleRemoteListenerMessage(ChannelListenerMessage<?> msg) {
-        if (msg.getMessageType().equals(MessageType.Listener.IDENTIFIER_LISTENER)
-                || msg.getMessageType().equals(MessageType.Listener.MESSAGE_TYPE_LISTENER)) {
-            this.addRemoteListener(msg);
-        } else if (msg.getMessageType().equals(MessageType.Listener.REGISTER_SERVER)
-                && msg.getSenderHost().equals(this.manager.getProxy())) {
-            de.timesnake.channel.util.Channel.LOGGER.info("Receiving of listeners finished");
-            this.listenerLoaded = true;
-            for (ChannelMessage<?, ?> serverMsg : this.messageStash) {
-                this.manager.sendMessage(serverMsg);
-            }
-            this.messageStash.clear();
-        } else if (msg.getMessageType().equals(MessageType.Listener.UNREGISTER_SERVER)) {
-            Host host = msg.getSenderHost();
-
-            if (host != null) {
-                this.listenerHostByMessageTypeByChannelType.forEach((k, v) -> v.remove(host));
-                de.timesnake.channel.util.Channel.LOGGER.info("Removed listener " + host);
-            }
-
-            this.disconnectHost(host);
+    protected void addLogListener(Host host) {
+        Logger logger = Logger.getLogger("");
+        try {
+            logger.addHandler(new SocketHandler(host.getHostname(), host.getPort()));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-    }
-
-    protected void addRemoteListener(ChannelListenerMessage<?> msg) {
-        Host senderHost = msg.getSenderHost();
-
-        if (senderHost.equals(this.manager.getSelf())) {
-            return;
-        }
-
-        if (msg.getMessageType().equals(MessageType.Listener.IDENTIFIER_LISTENER)) {
-            // prevent registration of server listeners, which are not belonging to this server
-            if (((MessageType.MessageIdentifierListener<?>) msg.getValue()).getChannelType().equals(ChannelType.SERVER)
-                    && !((MessageType.MessageIdentifierListener<?>) msg.getValue()).getIdentifier().equals(this.manager.getServerName())) {
-                return;
-            }
-
-            this.listenerHostByIdentifierByChannelType.get(((MessageType.MessageIdentifierListener<?>) msg.getValue()).getChannelType())
-                    .computeIfAbsent(((MessageType.MessageIdentifierListener<?>) msg.getValue()).getIdentifier(),
-                            k -> ConcurrentHashMap.newKeySet()).add(senderHost);
-        } else if (msg.getMessageType().equals(MessageType.Listener.MESSAGE_TYPE_LISTENER)) {
-            this.listenerHostByMessageTypeByChannelType.get(((MessageType.MessageTypeListener) msg.getValue()).getChannelType())
-                    .computeIfAbsent(((MessageType.MessageTypeListener) msg.getValue()).getMessageType(),
-                            k -> ConcurrentHashMap.newKeySet()).add(senderHost);
-        }
-        de.timesnake.channel.util.Channel.LOGGER.info("Added remote listener from '" + msg.getSenderHost() + "'");
     }
 
     protected void disconnectHost(Host host) {
@@ -181,10 +194,6 @@ public class ChannelClient {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    protected void sendPongMessage() {
-        this.sendMessageToProxy(new ChannelPingMessage(this.manager.getServerName(), MessageType.Ping.PONG));
     }
 
     public void sendMessage(ChannelMessage<?, ?> message) {
@@ -231,7 +240,8 @@ public class ChannelClient {
         this.sendMessageSynchronized(host, message, 0);
     }
 
-    protected final void sendMessageSynchronized(Host host, ChannelMessage<?, ?> message, int retry) {
+    protected final void sendMessageSynchronized(Host host, ChannelMessage<?, ?> message,
+            int retry) {
         Socket socket = this.socketByHost.computeIfAbsent(host, h -> {
             try {
                 return new Socket(host.getHostname(), host.getPort());
@@ -242,7 +252,9 @@ public class ChannelClient {
 
         if (socket == null) {
             if (retry >= Channel.CONNECTION_RETRIES) {
-                de.timesnake.channel.util.Channel.LOGGER.warning("Failed to setup connection to '" + host.getHostname() + ":" + host.getPort() + "'");
+                de.timesnake.channel.util.Channel.LOGGER.warning(
+                        "Failed to setup connection to '" + host.getHostname() + ":"
+                                + host.getPort() + "'");
                 return;
             }
             this.sendMessageSynchronized(host, message, retry + 1);
@@ -255,7 +267,8 @@ public class ChannelClient {
                 socketWriter.write(message.toStream());
                 socketWriter.write(System.lineSeparator());
                 socketWriter.flush();
-                de.timesnake.channel.util.Channel.LOGGER.info("Message send to " + host + ": '" + message.toStream() + "'");
+                de.timesnake.channel.util.Channel.LOGGER.info(
+                        "Message send to " + host + ": '" + message.toStream() + "'");
             } else {
                 this.sendMessageSynchronized(host, message, retry + 1);
             }
