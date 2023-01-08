@@ -8,8 +8,13 @@ import de.timesnake.channel.core.ChannelType;
 import de.timesnake.library.basic.util.Status;
 import de.timesnake.library.basic.util.Triple;
 import de.timesnake.library.basic.util.Tuple;
-
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 public abstract class MessageType<Value> {
 
@@ -28,15 +33,19 @@ public abstract class MessageType<Value> {
     public abstract Value parseValue(String value);
 
     public abstract static class Server<Value> extends MessageType<Value> {
+
         public static final MessageType<Status.Server> STATUS = new MessageTypeStatus<>("status");
-        public static final MessageType<Integer> ONLINE_PLAYERS = new MessageTypeInteger("online_players");
-        public static final MessageType<Integer> MAX_PLAYERS = new MessageTypeInteger("max_players");
+        public static final MessageType<Integer> ONLINE_PLAYERS = new MessageTypeInteger(
+                "online_players");
+        public static final MessageType<Integer> MAX_PLAYERS = new MessageTypeInteger(
+                "max_players");
         public static final MessageType<String> COMMAND = new MessageTypeString("command");
         public static final MessageType<Void> PERMISSION = new MessageTypeVoid("permission");
         public static final MessageType<String> MAP = new MessageTypeString("map");
         public static final MessageType<String> PASSWORD = new MessageTypeString("password");
         public static final MessageType<Boolean> OLD_PVP = new MessageTypeBoolean("old_pvp");
-        public static final MessageType<ChannelServerMessage.State> STATE = new MessageType<>("state") {
+        public static final MessageType<ChannelServerMessage.State> STATE = new MessageType<>(
+                "state") {
             @Override
             public String valueToString(ChannelServerMessage.State state) {
                 return state.name();
@@ -54,17 +63,25 @@ public abstract class MessageType<Value> {
         public static final MessageType<Boolean> DISCORD = new MessageTypeBoolean("discord");
         public static final MessageType<String> USER_STATS = new MessageTypeString("user_stats");
         public static final MessageType<String> LOAD_WORLD = new MessageTypeString("load_world");
-        public static final MessageType<String> UNLOAD_WORLD = new MessageTypeString("unload_world");
-        public static final MessageType<String> LOADED_WORLD = new MessageTypeString("loaded_world");
-        public static final MessageType<String> UNLOADED_WORLD = new MessageTypeString("unloaded_world");
-        public static final MessageType<Void> UNLOADED_ALL_WORLDS = new MessageTypeVoid("unloaded_all_worlds");
+        public static final MessageType<String> UNLOAD_WORLD = new MessageTypeString(
+                "unload_world");
+        public static final MessageType<String> LOADED_WORLD = new MessageTypeString(
+                "loaded_world");
+        public static final MessageType<String> UNLOADED_WORLD = new MessageTypeString(
+                "unloaded_world");
+        public static final MessageType<Void> UNLOADED_ALL_WORLDS = new MessageTypeVoid(
+                "unloaded_all_worlds");
 
-        public static final Set<MessageType<?>> TYPES = Set.of(STATUS, ONLINE_PLAYERS, MAX_PLAYERS, COMMAND,
-                PERMISSION, MAP, PASSWORD, OLD_PVP, STATE, CUSTOM, RESTART, DESTROY, KILL_DESTROY, DISCORD, USER_STATS,
+        public static final Set<MessageType<?>> TYPES = Set.of(STATUS, ONLINE_PLAYERS, MAX_PLAYERS,
+                COMMAND,
+                PERMISSION, MAP, PASSWORD, OLD_PVP, STATE, CUSTOM, RESTART, DESTROY, KILL_DESTROY,
+                DISCORD, USER_STATS,
                 LOAD_WORLD, UNLOAD_WORLD, LOADED_WORLD, UNLOADED_WORLD, UNLOADED_ALL_WORLDS);
 
         public static MessageType<?> valueOf(String name) {
-            if (name == null) return null;
+            if (name == null) {
+                return null;
+            }
             for (MessageType<?> type : TYPES) {
                 if (type.getName().equals(name)) {
                     return type;
@@ -79,22 +96,26 @@ public abstract class MessageType<Value> {
     }
 
     public abstract static class User<Value> extends MessageType<Value> {
+
         public static final MessageType<Status.User> STATUS = new MessageTypeStatus<>("status");
         public static final MessageType<Boolean> SERVICE = new MessageTypeBoolean("service");
-        public static final MessageType<Integer> SWITCH_PORT = new MessageTypeInteger("switch_port");
+        public static final MessageType<Integer> SWITCH_PORT = new MessageTypeInteger(
+                "switch_port");
         public static final MessageType<String> SWITCH_NAME = new MessageTypeString("switch_name");
         public static final MessageType<Void> PERMISSION = new MessageTypeVoid("permission");
         public static final MessageType<Void> PUNISH = new MessageTypeVoid("punish");
         public static final MessageType<Void> ALIAS = new MessageTypeVoid("alias");
         public static final MessageType<String> TASK = new MessageTypeString("task");
         public static final MessageType<String> COMMAND = new MessageTypeString("command");
-        public static final MessageType<String> PROXY_COMMAND = new MessageTypeString("proxy_command");
+        public static final MessageType<String> PROXY_COMMAND = new MessageTypeString(
+                "proxy_command");
         public static final MessageType<String> PERM_GROUP = new MessageTypeString("perm_group");
         public static final MessageType<Void> DISPLAY_GROUP = new MessageTypeVoid("display_group");
         public static final MessageType<String> TEAM = new MessageTypeString("team");
         public static final MessageType<String> STATISTICS = new MessageTypeString("statistics");
         public static final MessageType<String> CUSTOM = new MessageTypeString("custom");
-        public static final MessageType<ChannelUserMessage.Sound> SOUND = new MessageType<>("sound") {
+        public static final MessageType<ChannelUserMessage.Sound> SOUND = new MessageType<>(
+                "sound") {
             @Override
             public String valueToString(ChannelUserMessage.Sound s) {
                 return s.name();
@@ -105,17 +126,24 @@ public abstract class MessageType<Value> {
                 return ChannelUserMessage.Sound.valueOf(value);
             }
         };
-        public static final MessageType<Integer> STORY_START = new MessageTypeInteger("story_start");
+        public static final MessageType<Integer> STORY_START = new MessageTypeInteger(
+                "story_start");
         public static final MessageType<Integer> STORY_END = new MessageTypeInteger("story_end");
-        public static final MessageType<String> STORY_PLAY_AUDIO = new MessageTypeString("story_play_audio");
-        public static final MessageType<String> STORY_END_AUDIO = new MessageTypeString("story_end_audio");
+        public static final MessageType<String> STORY_PLAY_AUDIO = new MessageTypeString(
+                "story_play_audio");
+        public static final MessageType<String> STORY_END_AUDIO = new MessageTypeString(
+                "story_end_audio");
 
-        public static final Set<MessageType<?>> TYPES = Set.of(STATUS, SERVICE, SWITCH_PORT, SWITCH_NAME, PERMISSION,
-                PUNISH, ALIAS, TASK, COMMAND, PROXY_COMMAND, PERM_GROUP, DISPLAY_GROUP, TEAM, STATISTICS, CUSTOM, SOUND,
+        public static final Set<MessageType<?>> TYPES = Set.of(STATUS, SERVICE, SWITCH_PORT,
+                SWITCH_NAME, PERMISSION,
+                PUNISH, ALIAS, TASK, COMMAND, PROXY_COMMAND, PERM_GROUP, DISPLAY_GROUP, TEAM,
+                STATISTICS, CUSTOM, SOUND,
                 STORY_START, STORY_END, STORY_PLAY_AUDIO, STORY_END_AUDIO);
 
         public static MessageType<?> valueOf(String name) {
-            if (name == null) return null;
+            if (name == null) {
+                return null;
+            }
             for (MessageType<?> type : TYPES) {
                 if (type.getName().equals(name)) {
                     return type;
@@ -131,16 +159,20 @@ public abstract class MessageType<Value> {
 
     public abstract static class Support<Value> extends MessageType<Value> {
 
-        public static final MessageType<Integer> TICKET_LOCK = new MessageTypeInteger("ticket_lock");
+        public static final MessageType<Integer> TICKET_LOCK = new MessageTypeInteger(
+                "ticket_lock");
         public static final MessageType<Integer> SUBMIT = new MessageTypeInteger("submit");
         public static final MessageType<Integer> REJECT = new MessageTypeInteger("reject");
         public static final MessageType<Integer> ACCEPT = new MessageTypeInteger("accept");
         public static final MessageType<Integer> CREATION = new MessageTypeInteger("creation");
 
-        public static final Set<MessageType<?>> TYPES = Set.of(TICKET_LOCK, SUBMIT, REJECT, ACCEPT, CREATION);
+        public static final Set<MessageType<?>> TYPES = Set.of(TICKET_LOCK, SUBMIT, REJECT, ACCEPT,
+                CREATION);
 
         public static MessageType<?> valueOf(String name) {
-            if (name == null) return null;
+            if (name == null) {
+                return null;
+            }
             for (MessageType<?> type : TYPES) {
                 if (type.getName().equals(name)) {
                     return type;
@@ -155,7 +187,9 @@ public abstract class MessageType<Value> {
     }
 
     public abstract static class Listener<Value> extends MessageType<Value> {
-        public static final MessageType<MessageIdentifierListener<?>> IDENTIFIER_LISTENER = new MessageType<>("identifier_listener") {
+
+        public static final MessageType<MessageIdentifierListener<?>> IDENTIFIER_LISTENER = new MessageType<>(
+                "identifier_listener") {
             @Override
             public String valueToString(MessageIdentifierListener<?> messageIdentifierListener) {
                 return messageIdentifierListener.toString();
@@ -167,7 +201,8 @@ public abstract class MessageType<Value> {
             }
         };
 
-        public static final MessageType<MessageTypeListener> MESSAGE_TYPE_LISTENER = new MessageType<>("message_type_listener") {
+        public static final MessageType<MessageTypeListener> MESSAGE_TYPE_LISTENER = new MessageType<>(
+                "message_type_listener") {
             @Override
             public String valueToString(MessageTypeListener messageTypeListener) {
                 return messageTypeListener.toString();
@@ -179,15 +214,19 @@ public abstract class MessageType<Value> {
             }
         };
 
-        public static final MessageType<String> REGISTER_SERVER = new MessageTypeString("register_server");
-        public static final MessageType<String> UNREGISTER_SERVER = new MessageTypeString("unregister_server");
+        public static final MessageType<String> REGISTER_SERVER = new MessageTypeString(
+                "register_server");
+        public static final MessageType<String> UNREGISTER_SERVER = new MessageTypeString(
+                "unregister_server");
 
         public static final MessageType<Void> REGISTER_HOST = new MessageTypeVoid("register_host");
-        public static final MessageType<Void> UNREGISTER_HOST = new MessageTypeVoid("unregister_host");
+        public static final MessageType<Void> UNREGISTER_HOST = new MessageTypeVoid(
+                "unregister_host");
 
         public static final MessageType<Void> CLOSE_SOCKET = new MessageTypeVoid("close_socket");
 
-        public static final Set<MessageType<?>> TYPES = Set.of(IDENTIFIER_LISTENER, MESSAGE_TYPE_LISTENER, REGISTER_SERVER,
+        public static final Set<MessageType<?>> TYPES = Set.of(IDENTIFIER_LISTENER,
+                MESSAGE_TYPE_LISTENER, REGISTER_SERVER,
                 UNREGISTER_SERVER, REGISTER_HOST, UNREGISTER_HOST, CLOSE_SOCKET);
 
         public static MessageType<?> valueOf(String name) {
@@ -212,7 +251,9 @@ public abstract class MessageType<Value> {
         public static final Set<MessageType<?>> TYPES = Set.of(ALIAS, PERMISSION);
 
         public static MessageType<?> valueOf(String name) {
-            if (name == null) return null;
+            if (name == null) {
+                return null;
+            }
             for (MessageType<?> type : TYPES) {
                 if (type.getName().equals(name)) {
                     return type;
@@ -234,7 +275,9 @@ public abstract class MessageType<Value> {
         public static final Set<MessageType<?>> TYPES = Set.of(PING, PONG);
 
         public static MessageType<?> valueOf(String name) {
-            if (name == null) return null;
+            if (name == null) {
+                return null;
+            }
             for (MessageType<?> type : TYPES) {
                 if (type.getName().equals(name)) {
                     return type;
@@ -249,7 +292,9 @@ public abstract class MessageType<Value> {
     }
 
     public abstract static class Discord<Value> extends MessageType<Value> {
-        public static final MessageType<Collection<String>> DESTROY_CHANNELS = new MessageType<>("destroy_teams") {
+
+        public static final MessageType<Collection<String>> DESTROY_CHANNELS = new MessageType<>(
+                "destroy_teams") {
 
             private static final String DELIMITER = "#";
 
@@ -282,11 +327,15 @@ public abstract class MessageType<Value> {
         };
 
         public static final MessageType<Void> DELETE_UNUSED = new MessageTypeVoid("delete_unused");
-        public static final MessageType<Boolean> HIDE_CHANNELS = new MessageTypeBoolean("hide_channels");
-        public static final MessageType<String> MUTE_CHANNEL = new MessageTypeString("mute_channel");
-        public static final MessageType<UUID> DISCONNECT_MEMBER = new MessageTypeUUID("disconnect_member");
+        public static final MessageType<Boolean> HIDE_CHANNELS = new MessageTypeBoolean(
+                "hide_channels");
+        public static final MessageType<String> MUTE_CHANNEL = new MessageTypeString(
+                "mute_channel");
+        public static final MessageType<UUID> DISCONNECT_MEMBER = new MessageTypeUUID(
+                "disconnect_member");
 
-        public static final MessageType<ChannelDiscordMessage.Allocation> MOVE_MEMBERS = new MessageType<>("move_members") {
+        public static final MessageType<ChannelDiscordMessage.Allocation> MOVE_MEMBERS = new MessageType<>(
+                "move_members") {
 
             @Override
             public String valueToString(ChannelDiscordMessage.Allocation allocation) {
@@ -299,10 +348,13 @@ public abstract class MessageType<Value> {
             }
         };
 
-        public static final Set<MessageType<?>> TYPES = Set.of(MOVE_MEMBERS, DELETE_UNUSED, HIDE_CHANNELS, DESTROY_CHANNELS, MUTE_CHANNEL);
+        public static final Set<MessageType<?>> TYPES = Set.of(MOVE_MEMBERS, DELETE_UNUSED,
+                HIDE_CHANNELS, DESTROY_CHANNELS, MUTE_CHANNEL);
 
         public static MessageType<?> valueOf(String name) {
-            if (name == null) return null;
+            if (name == null) {
+                return null;
+            }
             for (MessageType<?> type : TYPES) {
                 if (type.getName().equals(name)) {
                     return type;
@@ -318,14 +370,20 @@ public abstract class MessageType<Value> {
 
     public abstract static class Templates<Value> extends MessageType<Value> {
 
-        public static final MessageType<String> INIT_PLAYER_SERVER = new MessageTypeString("init_player_server");
-        public static final MessageType<String> INIT_PUBLIC_PLAYER_SERVER = new MessageTypeString("init_public_player_server");
-        public static final MessageType<List<String>> UPDATE_WORLD = new MessageTypeStringList("update_world");
+        public static final MessageType<String> INIT_PLAYER_SERVER = new MessageTypeString(
+                "init_player_server");
+        public static final MessageType<String> INIT_PUBLIC_PLAYER_SERVER = new MessageTypeString(
+                "init_public_player_server");
+        public static final MessageType<List<String>> UPDATE_WORLD = new MessageTypeStringList(
+                "update_world");
 
-        public static final Set<MessageType<?>> TYPES = Set.of(INIT_PLAYER_SERVER, INIT_PUBLIC_PLAYER_SERVER, UPDATE_WORLD);
+        public static final Set<MessageType<?>> TYPES = Set.of(INIT_PLAYER_SERVER,
+                INIT_PUBLIC_PLAYER_SERVER, UPDATE_WORLD);
 
         public static MessageType<?> valueOf(String name) {
-            if (name == null) return null;
+            if (name == null) {
+                return null;
+            }
             for (MessageType<?> type : TYPES) {
                 if (type.getName().equals(name)) {
                     return type;
@@ -335,6 +393,31 @@ public abstract class MessageType<Value> {
         }
 
         public Templates(String name) {
+            super(name);
+        }
+    }
+
+    public abstract static class Logging<Value> extends MessageType<Value> {
+
+        public static final MessageType<String> INFO = new MessageTypeString("info");
+        public static final MessageType<String> WARNING = new MessageTypeString("warning");
+        public static final MessageType<String> ERROR = new MessageTypeString("error");
+
+        public static final Set<MessageType<?>> TYPES = Set.of(INFO, WARNING, ERROR);
+
+        public static MessageType<?> valueOf(String name) {
+            if (name == null) {
+                return null;
+            }
+            for (MessageType<?> type : TYPES) {
+                if (type.getName().equals(name)) {
+                    return type;
+                }
+            }
+            return null;
+        }
+
+        public Logging(String name) {
             super(name);
         }
     }
@@ -492,7 +575,8 @@ public abstract class MessageType<Value> {
         private final MessageType<A> aMessageType;
         private final MessageType<B> bMessageType;
 
-        public MessageTypeTuple(String name, MessageType<A> aMessageType, MessageType<B> bMessageType) {
+        public MessageTypeTuple(String name, MessageType<A> aMessageType,
+                MessageType<B> bMessageType) {
             super(name);
             this.aMessageType = aMessageType;
             this.bMessageType = bMessageType;
@@ -507,7 +591,8 @@ public abstract class MessageType<Value> {
         @Override
         public Tuple<A, B> parseValue(String tuple) {
             String[] values = tuple.split(ChannelMessage.DIVIDER, 2);
-            return new Tuple<>(this.aMessageType.parseValue(values[0]), this.bMessageType.parseValue(values[1]));
+            return new Tuple<>(this.aMessageType.parseValue(values[0]),
+                    this.bMessageType.parseValue(values[1]));
         }
     }
 
@@ -517,8 +602,9 @@ public abstract class MessageType<Value> {
         private final MessageType<B> bMessageType;
         private final MessageType<C> cMessageType;
 
-        public MessageTypeTriple(String name, MessageType<A> aMessageType, MessageType<B> bMessageType,
-                                 MessageType<C> cMessageType) {
+        public MessageTypeTriple(String name, MessageType<A> aMessageType,
+                MessageType<B> bMessageType,
+                MessageType<C> cMessageType) {
             super(name);
             this.aMessageType = aMessageType;
             this.bMessageType = bMessageType;
@@ -545,14 +631,16 @@ public abstract class MessageType<Value> {
 
         public static <Identifier> MessageIdentifierListener<Identifier> fromString(String value) {
             String[] s = value.split(ChannelMessage.DIVIDER);
-            ChannelType<Identifier> channelType = (ChannelType<Identifier>) ChannelType.valueOf(s[0]);
+            ChannelType<Identifier> channelType = (ChannelType<Identifier>) ChannelType.valueOf(
+                    s[0]);
             return new MessageIdentifierListener<>(channelType, channelType.parseIdentifier(s[1]));
         }
 
         private final ChannelType<Identifier> channelType;
         private final Identifier identifier;
 
-        public MessageIdentifierListener(ChannelType<Identifier> channelType, Identifier identifier) {
+        public MessageIdentifierListener(ChannelType<Identifier> channelType,
+                Identifier identifier) {
             this.channelType = channelType;
             this.identifier = identifier;
         }
@@ -597,7 +685,8 @@ public abstract class MessageType<Value> {
 
         @Override
         public String toString() {
-            return this.channelType.getName() + ChannelMessage.DIVIDER + this.messageType.getName();
+            return this.channelType.getName() + ChannelMessage.DIVIDER +
+                    (this.messageType != null ? this.messageType.getName() : "null");
         }
     }
 
