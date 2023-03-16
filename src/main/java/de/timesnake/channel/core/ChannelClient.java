@@ -201,6 +201,8 @@ public class ChannelClient {
     }
 
     public void sendMessageSynchronized(ChannelMessage<?, ?> message) {
+        boolean sendToProxy = false;
+
         if (this.listenerLoaded) {
             Set<Host> messageTypeListenerHosts = this.listenerHostByMessageTypeByChannelType
                     .get(message.getChannelType()).get(message.getMessageType());
@@ -217,13 +219,16 @@ public class ChannelClient {
             }
 
             for (Host host : listenerHosts) {
+                if (host.equals(this.manager.getProxy())) {
+                    sendToProxy = true;
+                }
                 this.sendMessageSynchronized(host, message);
             }
         } else {
             this.messageStash.add(message);
         }
 
-        if (!this.manager.getProxy().equals(this.manager.getSelf())) {
+        if (!sendToProxy && !this.manager.getProxy().equals(this.manager.getSelf())) {
             this.sendMessageSynchronized(this.manager.getProxy(), message);
         }
     }
