@@ -73,10 +73,9 @@ public abstract class MessageType<Value> {
                 "unloaded_all_worlds");
 
         public static final Set<MessageType<?>> TYPES = Set.of(STATUS, ONLINE_PLAYERS, MAX_PLAYERS,
-                COMMAND,
-                PERMISSION, MAP, PASSWORD, OLD_PVP, STATE, CUSTOM, RESTART, DESTROY, KILL_DESTROY,
-                DISCORD, USER_STATS,
-                LOAD_WORLD, UNLOAD_WORLD, LOADED_WORLD, UNLOADED_WORLD, UNLOADED_ALL_WORLDS);
+                COMMAND, PERMISSION, MAP, PASSWORD, OLD_PVP, STATE, CUSTOM, RESTART, DESTROY,
+                KILL_DESTROY, DISCORD, USER_STATS, LOAD_WORLD, UNLOAD_WORLD, LOADED_WORLD,
+                UNLOADED_WORLD, UNLOADED_ALL_WORLDS);
 
         public static MessageType<?> valueOf(String name) {
             if (name == null) {
@@ -135,10 +134,9 @@ public abstract class MessageType<Value> {
                 "story_end_audio");
 
         public static final Set<MessageType<?>> TYPES = Set.of(STATUS, SERVICE, SWITCH_PORT,
-                SWITCH_NAME, PERMISSION,
-                PUNISH, ALIAS, TASK, COMMAND, PROXY_COMMAND, PERM_GROUP, DISPLAY_GROUP, TEAM,
-                STATISTICS, CUSTOM, SOUND,
-                STORY_START, STORY_END, STORY_PLAY_AUDIO, STORY_END_AUDIO);
+                SWITCH_NAME, PERMISSION, PUNISH, ALIAS, TASK, COMMAND, PROXY_COMMAND,
+                PERM_GROUP, DISPLAY_GROUP, TEAM, STATISTICS, CUSTOM, SOUND, STORY_START, STORY_END,
+                STORY_PLAY_AUDIO, STORY_END_AUDIO);
 
         public static MessageType<?> valueOf(String name) {
             if (name == null) {
@@ -226,8 +224,8 @@ public abstract class MessageType<Value> {
         public static final MessageType<Void> CLOSE_SOCKET = new MessageTypeVoid("close_socket");
 
         public static final Set<MessageType<?>> TYPES = Set.of(IDENTIFIER_LISTENER,
-                MESSAGE_TYPE_LISTENER, REGISTER_SERVER,
-                UNREGISTER_SERVER, REGISTER_HOST, UNREGISTER_HOST, CLOSE_SOCKET);
+                MESSAGE_TYPE_LISTENER, REGISTER_SERVER, UNREGISTER_SERVER, REGISTER_HOST,
+                UNREGISTER_HOST, CLOSE_SOCKET);
 
         public static MessageType<?> valueOf(String name) {
             for (MessageType<?> type : TYPES) {
@@ -584,8 +582,8 @@ public abstract class MessageType<Value> {
 
         @Override
         public String valueToString(Tuple<A, B> tuple) {
-            return this.aMessageType.valueToString(tuple.getA()) + ChannelMessage.DIVIDER +
-                    this.bMessageType.valueToString(tuple.getB());
+            return this.aMessageType.valueToString(tuple.getA()) + ChannelMessage.DIVIDER
+                    + this.bMessageType.valueToString(tuple.getB());
         }
 
         @Override
@@ -603,8 +601,7 @@ public abstract class MessageType<Value> {
         private final MessageType<C> cMessageType;
 
         public MessageTypeTriple(String name, MessageType<A> aMessageType,
-                MessageType<B> bMessageType,
-                MessageType<C> cMessageType) {
+                MessageType<B> bMessageType, MessageType<C> cMessageType) {
             super(name);
             this.aMessageType = aMessageType;
             this.bMessageType = bMessageType;
@@ -613,9 +610,9 @@ public abstract class MessageType<Value> {
 
         @Override
         public String valueToString(Triple<A, B, C> tuple) {
-            return this.aMessageType.valueToString(tuple.getA()) + ChannelMessage.DIVIDER +
-                    this.bMessageType.valueToString(tuple.getB()) + ChannelMessage.DIVIDER +
-                    this.cMessageType.valueToString(tuple.getC());
+            return this.aMessageType.valueToString(tuple.getA()) + ChannelMessage.DIVIDER
+                    + this.bMessageType.valueToString(tuple.getB()) + ChannelMessage.DIVIDER
+                    + this.cMessageType.valueToString(tuple.getC());
         }
 
         @Override
@@ -685,8 +682,8 @@ public abstract class MessageType<Value> {
 
         @Override
         public String toString() {
-            return this.channelType.getName() + ChannelMessage.DIVIDER +
-                    (this.messageType != null ? this.messageType.getName() : "null");
+            return this.channelType.getName() + ChannelMessage.DIVIDER + (this.messageType != null
+                    ? this.messageType.getName() : "null");
         }
     }
 
