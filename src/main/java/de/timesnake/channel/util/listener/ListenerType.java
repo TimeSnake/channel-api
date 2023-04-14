@@ -16,6 +16,7 @@ import de.timesnake.channel.util.message.ChannelSupportMessage;
 import de.timesnake.channel.util.message.ChannelTemplatesMessage;
 import de.timesnake.channel.util.message.ChannelUserMessage;
 import de.timesnake.channel.util.message.MessageType;
+import de.timesnake.channel.util.message.MessageType.Server;
 import de.timesnake.library.basic.util.Tuple;
 import java.util.List;
 import java.util.UUID;
@@ -32,7 +33,9 @@ public enum ListenerType {
             Integer.class),
     SERVER_PERMISSION(ChannelType.SERVER, MessageType.Server.PERMISSION, ChannelServerMessage.class,
             Integer.class),
-    SERVER_MAP(ChannelType.SERVER, MessageType.Server.MAP, ChannelServerMessage.class,
+    SERVER_GAME_MAP(ChannelType.SERVER, MessageType.Server.GAME_MAP, ChannelServerMessage.class,
+            Integer.class),
+    SERVER_GAME_WORLD(ChannelType.SERVER, Server.GAME_WORLD, ChannelServerMessage.class,
             Integer.class),
     SERVER_OLD_PVP(ChannelType.SERVER, MessageType.Server.OLD_PVP, ChannelServerMessage.class,
             Integer.class),

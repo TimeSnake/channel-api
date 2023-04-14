@@ -41,7 +41,8 @@ public abstract class MessageType<Value> {
                 "max_players");
         public static final MessageType<String> COMMAND = new MessageTypeString("command");
         public static final MessageType<Void> PERMISSION = new MessageTypeVoid("permission");
-        public static final MessageType<String> MAP = new MessageTypeString("map");
+        public static final MessageType<String> GAME_MAP = new MessageTypeString("game_map");
+        public static final MessageType<String> GAME_WORLD = new MessageTypeString("game_world");
         public static final MessageType<String> PASSWORD = new MessageTypeString("password");
         public static final MessageType<Boolean> OLD_PVP = new MessageTypeBoolean("old_pvp");
         public static final MessageType<ChannelServerMessage.State> STATE = new MessageType<>(
@@ -73,7 +74,8 @@ public abstract class MessageType<Value> {
                 "unloaded_all_worlds");
 
         public static final Set<MessageType<?>> TYPES = Set.of(STATUS, ONLINE_PLAYERS, MAX_PLAYERS,
-                COMMAND, PERMISSION, MAP, PASSWORD, OLD_PVP, STATE, CUSTOM, RESTART, DESTROY,
+                COMMAND, PERMISSION, GAME_MAP, GAME_WORLD, PASSWORD, OLD_PVP, STATE, CUSTOM,
+                RESTART, DESTROY,
                 KILL_DESTROY, DISCORD, USER_STATS, LOAD_WORLD, UNLOAD_WORLD, LOADED_WORLD,
                 UNLOADED_WORLD, UNLOADED_ALL_WORLDS);
 
