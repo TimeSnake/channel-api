@@ -5,8 +5,11 @@
 package de.timesnake.channel.util.message;
 
 import de.timesnake.channel.core.ChannelType;
-
-import java.util.*;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.UUID;
 
 public class ChannelDiscordMessage<Value> extends ChannelMessage<String, Value> {
 
@@ -34,7 +37,8 @@ public class ChannelDiscordMessage<Value> extends ChannelMessage<String, Value> 
 
             for (String teamAllocation : toParse.split(TEAM_DELIMITER)) {
                 String[] values = teamAllocation.split(NAME_DELIMITER);
-                LinkedList<UUID> uuids = uuidsByTeam.compute(values[0], (k, v) -> new LinkedList<>());
+                LinkedList<UUID> uuids = uuidsByTeam.compute(values[0],
+                        (k, v) -> new LinkedList<>());
 
                 for (int i = 1; i < values.length; i++) {
                     uuids.add(UUID.fromString(values[i]));
@@ -68,15 +72,15 @@ public class ChannelDiscordMessage<Value> extends ChannelMessage<String, Value> 
                         sb.append(NAME_DELIMITER);
                     }
 
-                    sb.deleteCharAt(sb.length() - 1); // Remove last NAME_DELIMITER
+                    sb.deleteCharAt(sb.length() - 1);
 
                 }
 
-                sb.append(TEAM_DELIMITER); // End of team
+                sb.append(TEAM_DELIMITER);
             }
 
             if (!this.uuidsByTeam.isEmpty()) {
-                sb.deleteCharAt(sb.length() - 1); // Remove last TEAM_DELIMITER
+                sb.deleteCharAt(sb.length() - 1);
             }
             return sb.toString();
         }

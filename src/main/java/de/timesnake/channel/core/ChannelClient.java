@@ -11,6 +11,7 @@ import de.timesnake.channel.util.message.ChannelListenerMessage;
 import de.timesnake.channel.util.message.ChannelMessage;
 import de.timesnake.channel.util.message.MessageType;
 import de.timesnake.channel.util.message.MessageType.Listener;
+import de.timesnake.library.basic.util.Loggers;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
@@ -92,7 +93,7 @@ public class ChannelClient {
         }
     }
 
-    public void sendListenerMessage(ListenerType type, ChannelMessageFilter<?> filter) {
+    public boolean sendListenerMessage(ListenerType type, ChannelMessageFilter<?> filter) {
         if (type.getChannelType().equals(ChannelType.SERVER)) {
             if (filter != null && filter.getIdentifierFilter() != null) {
                 Collection<String> identifiers;
@@ -118,7 +119,7 @@ public class ChannelClient {
                 if (this.sendListenerMessageTypeAll ||
                         (type.getMessageType() != null && this.sendListenerMessageTypes.contains(
                                 type.getMessageType()))) {
-                    return;
+                    return true;
                 }
 
                 if (type.getMessageType() == null) {
@@ -132,6 +133,7 @@ public class ChannelClient {
                         new MessageType.MessageTypeListener(ChannelType.SERVER,
                                 type.getMessageType())));
             }
+            return true;
         } else if (type.getChannelType().equals(ChannelType.LOGGING)) {
             if (filter != null && filter.getIdentifierFilter() != null) {
                 Collection<String> identifiers;
@@ -158,7 +160,7 @@ public class ChannelClient {
                 if (this.sendLoggingListenerAll ||
                         (type.getMessageType() != null && this.sendListenerMessageTypes.contains(
                                 type.getMessageType()))) {
-                    return;
+                    return true;
                 }
 
                 if (type.getMessageType() == null) {
@@ -172,7 +174,10 @@ public class ChannelClient {
                         new MessageType.MessageTypeListener(ChannelType.LOGGING,
                                 type.getMessageType())));
             }
+            return true;
         }
+
+        return false;
     }
 
     protected void addLogListener(Host host) {
@@ -190,7 +195,7 @@ public class ChannelClient {
             if (socket != null) {
                 socket.close();
             }
-            de.timesnake.channel.util.Channel.LOGGER.info("Closed socket to " + host);
+            Loggers.CHANNEL.info("Closed socket to " + host);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -237,16 +242,21 @@ public class ChannelClient {
         sendMessage(this.manager.getProxy(), message);
     }
 
-    public final void sendMessage(Host host, ChannelMessage<?, ?> message) {
+    public void sendMessage(Host host, ChannelMessage<?, ?> message) {
         new Thread(() -> this.sendMessageSynchronized(host, message)).start();
     }
 
-    protected final void sendMessageSynchronized(Host host, ChannelMessage<?, ?> message) {
-        this.sendMessageSynchronized(host, message, 0);
+    public void sendMessageSynchronized(Host host, ChannelMessage<?, ?> message) {
+        try {
+            this.sendMessageSynchronized(host, message, 0);
+        } catch (IOException e) {
+            Loggers.CHANNEL.warning("Failed to setup connection to '"
+                    + host.getHostname() + ":" + host.getPort() + "'");
+        }
     }
 
-    protected final void sendMessageSynchronized(Host host, ChannelMessage<?, ?> message,
-            int retry) {
+    public void sendMessageSynchronized(Host host, ChannelMessage<?, ?> message, int retry)
+            throws IOException {
         Socket socket = this.socketByHost.computeIfAbsent(host, h -> {
             try {
                 return new Socket(host.getHostname(), host.getPort());
@@ -257,10 +267,7 @@ public class ChannelClient {
 
         if (socket == null) {
             if (retry >= Channel.CONNECTION_RETRIES) {
-                de.timesnake.channel.util.Channel.LOGGER.warning(
-                        "Failed to setup connection to '" + host.getHostname() + ":"
-                                + host.getPort() + "'");
-                return;
+                throw new IOException("Unable to establish connection");
             }
             this.sendMessageSynchronized(host, message, retry + 1);
             return;
@@ -272,8 +279,7 @@ public class ChannelClient {
                 socketWriter.write(message.toStream());
                 socketWriter.write(System.lineSeparator());
                 socketWriter.flush();
-                de.timesnake.channel.util.Channel.LOGGER.info(
-                        "Message send to " + host + ": '" + message.toStream() + "'");
+                Loggers.CHANNEL.info("Message send to " + host + ": '" + message.toStream() + "'");
             } else {
                 this.sendMessageSynchronized(host, message, retry + 1);
             }
