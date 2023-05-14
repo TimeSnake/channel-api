@@ -18,6 +18,7 @@ import de.timesnake.channel.util.message.ChannelServerMessage;
 import de.timesnake.channel.util.message.ChannelSupportMessage;
 import de.timesnake.channel.util.message.ChannelUserMessage;
 import de.timesnake.channel.util.message.MessageType;
+import de.timesnake.library.basic.util.Loggers;
 import de.timesnake.library.basic.util.Tuple;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -49,7 +50,7 @@ public abstract class ChannelServer implements Runnable {
         try {
             this.startServer();
         } catch (Exception e) {
-            de.timesnake.channel.util.Channel.LOGGER.warning("Error while starting channel-server");
+            Loggers.CHANNEL.warning("Error while starting channel-server");
         }
     }
 
@@ -72,7 +73,7 @@ public abstract class ChannelServer implements Runnable {
 
             String inMsg;
             while ((inMsg = socketReader.readLine()) != null) {
-                de.timesnake.channel.util.Channel.LOGGER.info("Message received: " + inMsg);
+                Loggers.CHANNEL.info("Message received: " + inMsg);
                 String[] args = inMsg.split(ChannelMessage.DIVIDER, 4);
 
                 ChannelType<?> type = ChannelType.valueOf(args[0]);
@@ -119,8 +120,7 @@ public abstract class ChannelServer implements Runnable {
             } else if (ChannelType.DISCORD.equals(type)) {
                 msg = new ChannelDiscordMessage<>(args);
             } else {
-                de.timesnake.channel.util.Channel.LOGGER.warning(
-                        "Error while reading channel type: '" + args[0] + "'");
+                Loggers.CHANNEL.warning("Error while reading channel type: '" + args[0] + "'");
             }
 
             if (msg != null) {

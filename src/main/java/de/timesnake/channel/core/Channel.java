@@ -10,6 +10,7 @@ import de.timesnake.channel.util.message.ChannelPingMessage;
 import de.timesnake.channel.util.message.MessageType;
 import de.timesnake.channel.util.message.MessageType.MessageIdentifierListener;
 import de.timesnake.channel.util.message.MessageType.MessageTypeListener;
+import de.timesnake.library.basic.util.Loggers;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
@@ -41,7 +42,7 @@ public abstract class Channel extends ChannelBasis {
                 MessageType.Listener.UNREGISTER_SERVER, this.getServerName()));
         if (this.serverThread.isAlive()) {
             this.serverThread.interrupt();
-            de.timesnake.channel.util.Channel.LOGGER.info("Network-channel stopped");
+            Loggers.CHANNEL.info("Network-channel stopped");
         }
     }
 
@@ -97,7 +98,7 @@ public abstract class Channel extends ChannelBasis {
                 this.addRemoteListener(msg);
             } else if (msg.getMessageType().equals(MessageType.Listener.REGISTER_SERVER)
                     && msg.getSenderHost().equals(this.manager.getProxy())) {
-                de.timesnake.channel.util.Channel.LOGGER.info("Receiving of listeners finished");
+                Loggers.CHANNEL.info("Receiving of listeners finished");
                 this.listenerLoaded = true;
                 for (ChannelMessage<?, ?> serverMsg : this.messageStash) {
                     this.manager.sendMessage(serverMsg);
@@ -108,7 +109,7 @@ public abstract class Channel extends ChannelBasis {
 
                 if (host != null) {
                     this.listenerHostByMessageTypeByChannelType.forEach((k, v) -> v.remove(host));
-                    de.timesnake.channel.util.Channel.LOGGER.info("Removed listener " + host);
+                    Loggers.CHANNEL.info("Removed listener " + host);
                 }
 
                 this.disconnectHost(host);
@@ -123,41 +124,37 @@ public abstract class Channel extends ChannelBasis {
             }
 
             if (msg.getMessageType().equals(MessageType.Listener.IDENTIFIER_LISTENER)) {
-                if (((MessageIdentifierListener<?>) msg.getValue()).getChannelType()
-                        .equals(ChannelType.LOGGING)) {
+                MessageIdentifierListener<?> identifierListener = (MessageIdentifierListener<?>) msg.getValue();
+
+                if (identifierListener.getChannelType().equals(ChannelType.LOGGING)) {
                     this.addLogListener(msg.getSenderHost());
                     return;
                 }
                 // prevent registration of server listener, which not belongs to this server
-                else if (
-                        ((MessageType.MessageIdentifierListener<?>) msg.getValue()).getChannelType()
-                                .equals(ChannelType.SERVER)
-                                && !((MessageType.MessageIdentifierListener<?>) msg.getValue()).getIdentifier()
-                                .equals(((Channel) this.manager).getServerName())) {
+                else if (identifierListener.getChannelType().equals(ChannelType.SERVER)
+                        && !((MessageType.MessageIdentifierListener<?>) msg.getValue()).getIdentifier()
+                        .equals(((Channel) this.manager).getServerName())) {
                     return;
                 }
 
                 this.listenerHostByIdentifierByChannelType.get(
-                                ((MessageType.MessageIdentifierListener<?>) msg.getValue()).getChannelType())
-                        .computeIfAbsent(
-                                ((MessageType.MessageIdentifierListener<?>) msg.getValue()).getIdentifier(),
+                                identifierListener.getChannelType())
+                        .computeIfAbsent(identifierListener.getIdentifier(),
                                 k -> ConcurrentHashMap.newKeySet()).add(senderHost);
             } else if (msg.getMessageType().equals(MessageType.Listener.MESSAGE_TYPE_LISTENER)) {
-                if (((MessageTypeListener) msg.getValue()).getChannelType()
-                        .equals(ChannelType.LOGGING)) {
+                MessageTypeListener typeListener = (MessageTypeListener) msg.getValue();
+
+                if (typeListener.getChannelType().equals(ChannelType.LOGGING)) {
                     this.addLogListener(msg.getSenderHost());
                     return;
                 }
 
-                this.listenerHostByMessageTypeByChannelType.get(
-                                ((MessageType.MessageTypeListener) msg.getValue()).getChannelType())
-                        .computeIfAbsent(
-                                ((MessageType.MessageTypeListener) msg.getValue()).getMessageType(),
+                this.listenerHostByMessageTypeByChannelType.get(typeListener.getChannelType())
+                        .computeIfAbsent(typeListener.getMessageType(),
                                 k -> ConcurrentHashMap.newKeySet()).add(senderHost);
             }
 
-            de.timesnake.channel.util.Channel.LOGGER.info(
-                    "Added remote listener from '" + msg.getSenderHost() + "'");
+            Loggers.CHANNEL.info("Added remote listener from '" + msg.getSenderHost() + "'");
         }
 
         protected void addLogListener(Host host) {
@@ -167,8 +164,7 @@ public abstract class Channel extends ChannelBasis {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-            de.timesnake.channel.util.Channel.LOGGER.info(
-                    "Added remote log listener from '" + host + "'");
+            Loggers.CHANNEL.info("Added remote log listener from '" + host + "'");
         }
 
         protected void sendPongMessage() {

@@ -10,6 +10,7 @@ import de.timesnake.channel.util.listener.ListenerType;
 import de.timesnake.channel.util.message.ChannelListenerMessage;
 import de.timesnake.channel.util.message.ChannelMessage;
 import de.timesnake.channel.util.message.MessageType.Listener;
+import de.timesnake.library.basic.util.Loggers;
 
 public abstract class ChannelBasis implements de.timesnake.channel.util.Channel {
 
@@ -40,10 +41,15 @@ public abstract class ChannelBasis implements de.timesnake.channel.util.Channel 
     protected ChannelClient client;
 
     protected ChannelBasis(Thread mainThread, int socketPort, int proxySocketPort) {
+        this(mainThread, new Host(SERVER_IP, socketPort),
+                new Host(SERVER_IP, proxySocketPort));
+    }
+
+    protected ChannelBasis(Thread mainThread, Host self, Host proxy) {
         this.mainThread = mainThread;
 
-        this.self = new Host(SERVER_IP, socketPort);
-        this.proxy = new Host(SERVER_IP, proxySocketPort);
+        this.self = self;
+        this.proxy = proxy;
 
         this.loadChannelServer();
         this.loadChannelClient();
@@ -65,7 +71,7 @@ public abstract class ChannelBasis implements de.timesnake.channel.util.Channel 
     public void start() {
         this.serverThread = new Thread(this.server);
         this.serverThread.start();
-        de.timesnake.channel.util.Channel.LOGGER.info("Network-channel started");
+        Loggers.CHANNEL.info("Network-channel started");
     }
 
     public void stop() {
@@ -73,7 +79,7 @@ public abstract class ChannelBasis implements de.timesnake.channel.util.Channel 
                 Listener.UNREGISTER_HOST));
         if (this.serverThread.isAlive()) {
             this.serverThread.interrupt();
-            de.timesnake.channel.util.Channel.LOGGER.info("Network-channel stopped");
+            Loggers.CHANNEL.info("Network-channel stopped");
         }
     }
 
