@@ -12,19 +12,19 @@ import de.timesnake.channel.util.message.ChannelMessage;
 
 public interface Channel {
 
-    static Channel getInstance() {
-        return de.timesnake.channel.core.Channel.getInstance();
-    }
+  static Channel getInstance() {
+    return de.timesnake.channel.core.Channel.getInstance();
+  }
 
-    void addListener(ChannelListener listener);
+  void addListener(ChannelListener listener);
 
-    void addListener(ChannelListener listener, ChannelMessageFilter<?> filter);
+  void addListener(ChannelListener listener, ChannelMessageFilter<?> filter);
 
-    void removeListener(ChannelListener listener, ListenerType... types);
+  void removeListener(ChannelListener listener, ListenerType... types);
 
-    void sendMessage(ChannelMessage<?, ?> message);
+  void sendMessage(ChannelMessage<?, ?> message);
 
-    void sendMessageSynchronized(ChannelMessage<?, ?> message);
+  void sendMessageSynchronized(ChannelMessage<?, ?> message);
 
-    Host getHost();
+  Host getHost();
 }

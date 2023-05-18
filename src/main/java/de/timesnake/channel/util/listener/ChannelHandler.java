@@ -13,8 +13,8 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 public @interface ChannelHandler {
 
-    ListenerType[] type();
+  ListenerType[] type();
 
-    boolean filtered() default false;
+  boolean filtered() default false;
 
 }

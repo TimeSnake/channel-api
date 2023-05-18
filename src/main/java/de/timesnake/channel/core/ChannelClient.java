@@ -25,287 +25,287 @@ import java.util.logging.SocketHandler;
 
 public class ChannelClient {
 
-    /**
-     * Checks if server is interested in message.
-     * <p>
-     * If message is server identifier listener, when check if listener identifier is equals with
-     * receiver server name.
-     * </p>
-     *
-     * @param host       Host to send to
-     * @param serverName Name of server to send to
-     * @param msg        Listener message, which is sent
-     * @return true if message is interesting for server, else false
-     */
-    public static boolean isInterestingForServer(Host host, String serverName,
-            ChannelListenerMessage<?> msg) {
-        if (msg.getMessageType().equals(MessageType.Listener.IDENTIFIER_LISTENER)) {
-            if (((MessageType.MessageIdentifierListener<?>) msg.getValue()).getChannelType()
-                    .equals(ChannelType.SERVER)) {
-                if (!serverName.equals(
-                        ((MessageType.MessageIdentifierListener<?>) msg.getValue()).getIdentifier())) {
-                    return false;
-                }
-            }
+  /**
+   * Checks if server is interested in message.
+   * <p>
+   * If message is server identifier listener, when check if listener identifier is equals with
+   * receiver server name.
+   * </p>
+   *
+   * @param host       Host to send to
+   * @param serverName Name of server to send to
+   * @param msg        Listener message, which is sent
+   * @return true if message is interesting for server, else false
+   */
+  public static boolean isInterestingForServer(Host host, String serverName,
+      ChannelListenerMessage<?> msg) {
+    if (msg.getMessageType().equals(MessageType.Listener.IDENTIFIER_LISTENER)) {
+      if (((MessageType.MessageIdentifierListener<?>) msg.getValue()).getChannelType()
+          .equals(ChannelType.SERVER)) {
+        if (!serverName.equals(
+            ((MessageType.MessageIdentifierListener<?>) msg.getValue()).getIdentifier())) {
+          return false;
         }
-        return !msg.getSenderHost().equals(host);
+      }
+    }
+    return !msg.getSenderHost().equals(host);
+  }
+
+  protected final ChannelBasis manager;
+
+  // Already send server messages
+  protected Set<String> sendListenerNames = ConcurrentHashMap.newKeySet();
+  protected boolean sendListenerMessageTypeAll = false;
+  protected Set<MessageType<?>> sendListenerMessageTypes = ConcurrentHashMap.newKeySet();
+
+  // Already send log messages
+  protected Set<String> sendLoggingListeners = ConcurrentHashMap.newKeySet();
+  protected boolean sendLoggingListenerAll = false;
+
+  /**
+   * Only for servers, which are interested
+   */
+  protected ConcurrentHashMap<ChannelType<?>, ConcurrentHashMap<Object, Set<Host>>>
+      listenerHostByIdentifierByChannelType = new ConcurrentHashMap<>();
+  protected ConcurrentHashMap<ChannelType<?>, ConcurrentHashMap<MessageType<?>, Set<Host>>>
+      listenerHostByMessageTypeByChannelType = new ConcurrentHashMap<>();
+
+
+  protected ConcurrentHashMap<Host, Socket> socketByHost = new ConcurrentHashMap<>();
+  protected Set<Socket> loggingSockets = ConcurrentHashMap.newKeySet();
+
+  // stash until server is registered
+  protected boolean listenerLoaded = false;
+  protected Set<ChannelMessage<?, ?>> messageStash = ConcurrentHashMap.newKeySet();
+
+  public ChannelClient(ChannelBasis manager) {
+    this.manager = manager;
+
+    for (ChannelType<?> type : ChannelType.TYPES) {
+      this.listenerHostByIdentifierByChannelType.put(type, new ConcurrentHashMap<>());
     }
 
-    protected final ChannelBasis manager;
+    for (ChannelType<?> type : ChannelType.TYPES) {
+      this.listenerHostByMessageTypeByChannelType.put(type, new ConcurrentHashMap<>());
+    }
+  }
 
-    // Already send server messages
-    protected Set<String> sendListenerNames = ConcurrentHashMap.newKeySet();
-    protected boolean sendListenerMessageTypeAll = false;
-    protected Set<MessageType<?>> sendListenerMessageTypes = ConcurrentHashMap.newKeySet();
+  public void connectToProxy(ChannelListenerMessage<?> msg, Duration retryPeriod) {
+    boolean successful = this.sendMessageSynchronized(this.manager.getProxy(), msg);
 
-    // Already send log messages
-    protected Set<String> sendLoggingListeners = ConcurrentHashMap.newKeySet();
-    protected boolean sendLoggingListenerAll = false;
-
-    /**
-     * Only for servers, which are interested
-     */
-    protected ConcurrentHashMap<ChannelType<?>, ConcurrentHashMap<Object, Set<Host>>>
-            listenerHostByIdentifierByChannelType = new ConcurrentHashMap<>();
-    protected ConcurrentHashMap<ChannelType<?>, ConcurrentHashMap<MessageType<?>, Set<Host>>>
-            listenerHostByMessageTypeByChannelType = new ConcurrentHashMap<>();
-
-
-    protected ConcurrentHashMap<Host, Socket> socketByHost = new ConcurrentHashMap<>();
-    protected Set<Socket> loggingSockets = ConcurrentHashMap.newKeySet();
-
-    // stash until server is registered
-    protected boolean listenerLoaded = false;
-    protected Set<ChannelMessage<?, ?>> messageStash = ConcurrentHashMap.newKeySet();
-
-    public ChannelClient(ChannelBasis manager) {
-        this.manager = manager;
-
-        for (ChannelType<?> type : ChannelType.TYPES) {
-            this.listenerHostByIdentifierByChannelType.put(type, new ConcurrentHashMap<>());
-        }
-
-        for (ChannelType<?> type : ChannelType.TYPES) {
-            this.listenerHostByMessageTypeByChannelType.put(type, new ConcurrentHashMap<>());
-        }
+    if (successful) {
+      this.manager.onProxyConnected();
+      return;
     }
 
-    public void connectToProxy(ChannelListenerMessage<?> msg, Duration retryPeriod) {
-        boolean successful = this.sendMessageSynchronized(this.manager.getProxy(), msg);
+    new Thread(() -> {
+      try {
+        Thread.sleep(retryPeriod.toMillis());
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
 
-        if (successful) {
-            this.manager.onProxyConnected();
-            return;
-        }
+      this.connectToProxy(msg, retryPeriod);
+    }).start();
+  }
 
-        new Thread(() -> {
-            try {
-                Thread.sleep(retryPeriod.toMillis());
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+  public boolean sendListenerMessage(ListenerType type, ChannelMessageFilter<?> filter) {
+    if (type.getChannelType().equals(ChannelType.SERVER)) {
+      if (filter != null && filter.getIdentifierFilter() != null) {
+        Collection<String> identifiers;
 
-            this.connectToProxy(msg, retryPeriod);
-        }).start();
-    }
-
-    public boolean sendListenerMessage(ListenerType type, ChannelMessageFilter<?> filter) {
-        if (type.getChannelType().equals(ChannelType.SERVER)) {
-            if (filter != null && filter.getIdentifierFilter() != null) {
-                Collection<String> identifiers;
-
-                try {
-                    identifiers = (Collection<String>) filter.getIdentifierFilter();
-                } catch (ClassCastException e) {
-                    throw new InconsistentChannelListenerException("invalid filter type");
-                }
-
-                for (String name : identifiers) {
-                    if (this.sendListenerNames.contains(name)) {
-                        continue;
-                    }
-
-                    this.sendListenerNames.add(name);
-
-                    this.sendMessage(new ChannelListenerMessage<>(this.manager.getSelf(),
-                            MessageType.Listener.IDENTIFIER_LISTENER,
-                            new MessageType.MessageIdentifierListener<>(ChannelType.SERVER, name)));
-                }
-            } else {
-                if (this.sendListenerMessageTypeAll ||
-                        (type.getMessageType() != null && this.sendListenerMessageTypes.contains(
-                                type.getMessageType()))) {
-                    return true;
-                }
-
-                if (type.getMessageType() == null) {
-                    this.sendListenerMessageTypeAll = true;
-                } else {
-                    this.sendListenerMessageTypes.add(type.getMessageType());
-                }
-
-                this.sendMessage(new ChannelListenerMessage<>(this.manager.getSelf(),
-                        MessageType.Listener.MESSAGE_TYPE_LISTENER,
-                        new MessageType.MessageTypeListener(ChannelType.SERVER,
-                                type.getMessageType())));
-            }
-            return true;
-        } else if (type.getChannelType().equals(ChannelType.LOGGING)) {
-            if (filter != null && filter.getIdentifierFilter() != null) {
-                Collection<String> identifiers;
-
-                try {
-                    identifiers = (Collection<String>) filter.getIdentifierFilter();
-                } catch (ClassCastException e) {
-                    throw new InconsistentChannelListenerException("invalid filter type");
-                }
-
-                for (String name : identifiers) {
-                    if (this.sendLoggingListeners.contains(name)) {
-                        continue;
-                    }
-
-                    this.sendLoggingListeners.add(name);
-
-                    this.sendMessage(new ChannelListenerMessage<>(this.manager.getSelf(),
-                            Listener.IDENTIFIER_LISTENER,
-                            new MessageType.MessageIdentifierListener<>(ChannelType.LOGGING,
-                                    name)));
-                }
-            } else {
-                if (this.sendLoggingListenerAll ||
-                        (type.getMessageType() != null && this.sendListenerMessageTypes.contains(
-                                type.getMessageType()))) {
-                    return true;
-                }
-
-                if (type.getMessageType() == null) {
-                    this.sendLoggingListenerAll = true;
-                } else {
-                    this.sendListenerMessageTypes.add(type.getMessageType());
-                }
-
-                this.sendMessage(new ChannelListenerMessage<>(this.manager.getSelf(),
-                        Listener.MESSAGE_TYPE_LISTENER,
-                        new MessageType.MessageTypeListener(ChannelType.LOGGING,
-                                type.getMessageType())));
-            }
-            return true;
-        }
-
-        return false;
-    }
-
-    protected void addLogListener(Host host) {
-        Logger logger = Logger.getLogger("");
         try {
-            logger.addHandler(new SocketHandler(host.getHostname(), host.getPort()));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+          identifiers = (Collection<String>) filter.getIdentifierFilter();
+        } catch (ClassCastException e) {
+          throw new InconsistentChannelListenerException("invalid filter type");
         }
-    }
 
-    public void disconnectHost(Host host) {
-        try {
-            Socket socket = this.socketByHost.remove(host);
-            if (socket != null) {
-                socket.close();
-            }
-            Loggers.CHANNEL.finer("Closed socket to " + host);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        for (String name : identifiers) {
+          if (this.sendListenerNames.contains(name)) {
+            continue;
+          }
+
+          this.sendListenerNames.add(name);
+
+          this.sendMessage(new ChannelListenerMessage<>(this.manager.getSelf(),
+              MessageType.Listener.IDENTIFIER_LISTENER,
+              new MessageType.MessageIdentifierListener<>(ChannelType.SERVER, name)));
         }
-    }
+      } else {
+        if (this.sendListenerMessageTypeAll ||
+            (type.getMessageType() != null && this.sendListenerMessageTypes.contains(
+                type.getMessageType()))) {
+          return true;
+        }
 
-    public void sendMessage(ChannelMessage<?, ?> message) {
-        new Thread(() -> this.sendMessageSynchronized(message)).start();
-    }
-
-    public void sendMessageSynchronized(ChannelMessage<?, ?> message) {
-        boolean sendToProxy = false;
-
-        if (this.listenerLoaded) {
-            Set<Host> messageTypeListenerHosts = this.listenerHostByMessageTypeByChannelType
-                    .get(message.getChannelType()).get(message.getMessageType());
-            Set<Host> identifierListenerHosts = this.listenerHostByIdentifierByChannelType
-                    .get(message.getChannelType()).get(message.getIdentifier());
-
-            Set<Host> listenerHosts = new HashSet<>();
-
-            if (messageTypeListenerHosts != null) {
-                listenerHosts = messageTypeListenerHosts;
-            }
-            if (identifierListenerHosts != null) {
-                listenerHosts.addAll(identifierListenerHosts);
-            }
-
-            for (Host host : listenerHosts) {
-                if (host.equals(this.manager.getProxy())) {
-                    sendToProxy = true;
-                }
-                this.sendMessageSynchronized(host, message);
-            }
+        if (type.getMessageType() == null) {
+          this.sendListenerMessageTypeAll = true;
         } else {
-            this.messageStash.add(message);
+          this.sendListenerMessageTypes.add(type.getMessageType());
         }
 
-        if (!sendToProxy && !this.manager.getProxy().equals(this.manager.getSelf())) {
-            this.sendMessageSynchronized(this.manager.getProxy(), message);
-        }
-    }
-
-    public void sendMessageToProxy(ChannelMessage<?, ?> message) {
-        sendMessage(this.manager.getProxy(), message);
-    }
-
-    public void sendMessage(Host host, ChannelMessage<?, ?> message) {
-        new Thread(() -> this.sendMessageSynchronized(host, message)).start();
-    }
-
-    public boolean sendMessageSynchronized(Host host, ChannelMessage<?, ?> message) {
-        try {
-            this.sendMessageSynchronized(host, message, 0);
-            return true;
-        } catch (IOException e) {
-            Loggers.CHANNEL.warning("Failed to setup connection to '"
-                    + host.getHostname() + ":" + host.getPort() + "'");
-            return false;
-        }
-    }
-
-    public void sendMessageSynchronized(Host host, ChannelMessage<?, ?> message, int retry)
-            throws IOException {
-        Socket socket = this.socketByHost.computeIfAbsent(host, h -> {
-            try {
-                return new Socket(host.getHostname(), host.getPort());
-            } catch (IOException e) {
-                return null;
-            }
-        });
-
-        if (socket == null) {
-            if (retry >= Channel.CONNECTION_RETRIES) {
-                throw new IOException("Unable to establish connection to '" + host + "'");
-            }
-            this.sendMessageSynchronized(host, message, retry + 1);
-            return;
-        }
+        this.sendMessage(new ChannelListenerMessage<>(this.manager.getSelf(),
+            MessageType.Listener.MESSAGE_TYPE_LISTENER,
+            new MessageType.MessageTypeListener(ChannelType.SERVER,
+                type.getMessageType())));
+      }
+      return true;
+    } else if (type.getChannelType().equals(ChannelType.LOGGING)) {
+      if (filter != null && filter.getIdentifierFilter() != null) {
+        Collection<String> identifiers;
 
         try {
-            if (socket.isConnected()) {
-                OutputStreamWriter socketWriter = new OutputStreamWriter(socket.getOutputStream());
-                socketWriter.write(message.toStream());
-                socketWriter.write(System.lineSeparator());
-                socketWriter.flush();
-                Loggers.CHANNEL.fine("Message send to " + host + ": '" + message.toStream() + "'");
-            } else {
-                this.sendMessageSynchronized(host, message, retry + 1);
-            }
-        } catch (IOException ignored) {
+          identifiers = (Collection<String>) filter.getIdentifierFilter();
+        } catch (ClassCastException e) {
+          throw new InconsistentChannelListenerException("invalid filter type");
         }
+
+        for (String name : identifiers) {
+          if (this.sendLoggingListeners.contains(name)) {
+            continue;
+          }
+
+          this.sendLoggingListeners.add(name);
+
+          this.sendMessage(new ChannelListenerMessage<>(this.manager.getSelf(),
+              Listener.IDENTIFIER_LISTENER,
+              new MessageType.MessageIdentifierListener<>(ChannelType.LOGGING,
+                  name)));
+        }
+      } else {
+        if (this.sendLoggingListenerAll ||
+            (type.getMessageType() != null && this.sendListenerMessageTypes.contains(
+                type.getMessageType()))) {
+          return true;
+        }
+
+        if (type.getMessageType() == null) {
+          this.sendLoggingListenerAll = true;
+        } else {
+          this.sendListenerMessageTypes.add(type.getMessageType());
+        }
+
+        this.sendMessage(new ChannelListenerMessage<>(this.manager.getSelf(),
+            Listener.MESSAGE_TYPE_LISTENER,
+            new MessageType.MessageTypeListener(ChannelType.LOGGING,
+                type.getMessageType())));
+      }
+      return true;
     }
 
-    public ConcurrentHashMap<Host, Socket> getSocketByHost() {
-        return socketByHost;
+    return false;
+  }
+
+  protected void addLogListener(Host host) {
+    Logger logger = Logger.getLogger("");
+    try {
+      logger.addHandler(new SocketHandler(host.getHostname(), host.getPort()));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
+  }
+
+  public void disconnectHost(Host host) {
+    try {
+      Socket socket = this.socketByHost.remove(host);
+      if (socket != null) {
+        socket.close();
+      }
+      Loggers.CHANNEL.finer("Closed socket to " + host);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void sendMessage(ChannelMessage<?, ?> message) {
+    new Thread(() -> this.sendMessageSynchronized(message)).start();
+  }
+
+  public void sendMessageSynchronized(ChannelMessage<?, ?> message) {
+    boolean sendToProxy = false;
+
+    if (this.listenerLoaded) {
+      Set<Host> messageTypeListenerHosts = this.listenerHostByMessageTypeByChannelType
+          .get(message.getChannelType()).get(message.getMessageType());
+      Set<Host> identifierListenerHosts = this.listenerHostByIdentifierByChannelType
+          .get(message.getChannelType()).get(message.getIdentifier());
+
+      Set<Host> listenerHosts = new HashSet<>();
+
+      if (messageTypeListenerHosts != null) {
+        listenerHosts = messageTypeListenerHosts;
+      }
+      if (identifierListenerHosts != null) {
+        listenerHosts.addAll(identifierListenerHosts);
+      }
+
+      for (Host host : listenerHosts) {
+        if (host.equals(this.manager.getProxy())) {
+          sendToProxy = true;
+        }
+        this.sendMessageSynchronized(host, message);
+      }
+    } else {
+      this.messageStash.add(message);
+    }
+
+    if (!sendToProxy && !this.manager.getProxy().equals(this.manager.getSelf())) {
+      this.sendMessageSynchronized(this.manager.getProxy(), message);
+    }
+  }
+
+  public void sendMessageToProxy(ChannelMessage<?, ?> message) {
+    sendMessage(this.manager.getProxy(), message);
+  }
+
+  public void sendMessage(Host host, ChannelMessage<?, ?> message) {
+    new Thread(() -> this.sendMessageSynchronized(host, message)).start();
+  }
+
+  public boolean sendMessageSynchronized(Host host, ChannelMessage<?, ?> message) {
+    try {
+      this.sendMessageSynchronized(host, message, 0);
+      return true;
+    } catch (IOException e) {
+      Loggers.CHANNEL.warning("Failed to setup connection to '"
+          + host.getHostname() + ":" + host.getPort() + "'");
+      return false;
+    }
+  }
+
+  public void sendMessageSynchronized(Host host, ChannelMessage<?, ?> message, int retry)
+      throws IOException {
+    Socket socket = this.socketByHost.computeIfAbsent(host, h -> {
+      try {
+        return new Socket(host.getHostname(), host.getPort());
+      } catch (IOException e) {
+        return null;
+      }
+    });
+
+    if (socket == null) {
+      if (retry >= Channel.CONNECTION_RETRIES) {
+        throw new IOException("Unable to establish connection to '" + host + "'");
+      }
+      this.sendMessageSynchronized(host, message, retry + 1);
+      return;
+    }
+
+    try {
+      if (socket.isConnected()) {
+        OutputStreamWriter socketWriter = new OutputStreamWriter(socket.getOutputStream());
+        socketWriter.write(message.toStream());
+        socketWriter.write(System.lineSeparator());
+        socketWriter.flush();
+        Loggers.CHANNEL.fine("Message send to " + host + ": '" + message.toStream() + "'");
+      } else {
+        this.sendMessageSynchronized(host, message, retry + 1);
+      }
+    } catch (IOException ignored) {
+    }
+  }
+
+  public ConcurrentHashMap<Host, Socket> getSocketByHost() {
+    return socketByHost;
+  }
 }
