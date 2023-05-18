@@ -1,5 +1,11 @@
+group = project.group
+version = '2.0-SNAPSHOT'
+archivesBaseName = 'channel-api'
+var projectId = 22
+
 repositories {
   mavenLocal()
+  mavenCentral()
   maven {
     url = uri 'https://repo.maven.apache.org/maven2/'
   }
@@ -10,6 +16,14 @@ dependencies {
   compileOnly project(':library-chat')
 }
 
-group = project.group
-version = '2.0-SNAPSHOT'
-archivesBaseName = 'channel-api'
+publishing {
+  repositories {
+    maven {
+      url getDeployUrl(projectId)
+      credentials {
+        username = deploy_token_name
+        password = deploy_token_key
+      }
+    }
+  }
+}
