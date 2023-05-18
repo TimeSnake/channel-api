@@ -1,13 +1,13 @@
 repositories {
-    mavenLocal()
-    maven {
-        url = uri 'https://repo.maven.apache.org/maven2/'
-    }
+  mavenLocal()
+  maven {
+    url = uri 'https://repo.maven.apache.org/maven2/'
+  }
 }
 
 dependencies {
-    compileOnly project(':library-basic')
-    compileOnly project(':library-chat')
+  compileOnly project(':library-basic')
+  compileOnly project(':library-chat')
 }
 
 group = project.group
