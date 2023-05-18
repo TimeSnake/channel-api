@@ -5,6 +5,7 @@
 package de.timesnake.channel.util.message;
 
 import de.timesnake.channel.core.ChannelType;
+import de.timesnake.channel.core.UnknownTypeException;
 
 public abstract class ChannelMessage<Identifier, Value> {
 
@@ -17,7 +18,18 @@ public abstract class ChannelMessage<Identifier, Value> {
 
     public ChannelMessage(String... args) {
         this.channelType = (ChannelType<Identifier>) ChannelType.valueOf(args[0]);
+
+        if (this.channelType == null) {
+            throw new UnknownTypeException("Unknown channel type '" + args[0] + "'");
+        }
+
         this.messageType = (MessageType<Value>) channelType.parseMessageType(args[1]);
+
+        if (messageType == null) {
+            throw new UnknownTypeException("Unknown message type '" + args[1] + "' for channel '"
+                    + args[0] + "'");
+        }
+
         this.identifier = this.channelType.parseIdentifier(args[2]);
         if (args.length >= 4) {
             this.value = this.messageType.parseValue(args[3]);
@@ -26,8 +38,9 @@ public abstract class ChannelMessage<Identifier, Value> {
         }
     }
 
-    public ChannelMessage(ChannelType<Identifier> channelType, Identifier identifier, MessageType<Value> messageType,
-                          Value value) {
+    public ChannelMessage(ChannelType<Identifier> channelType, Identifier identifier,
+            MessageType<Value> messageType,
+            Value value) {
         this.channelType = channelType;
         this.messageType = messageType;
         this.identifier = identifier;
@@ -35,7 +48,8 @@ public abstract class ChannelMessage<Identifier, Value> {
     }
 
 
-    public ChannelMessage(ChannelType<Identifier> channelType, Identifier identifier, MessageType<Value> messageType) {
+    public ChannelMessage(ChannelType<Identifier> channelType, Identifier identifier,
+            MessageType<Value> messageType) {
         this.channelType = channelType;
         this.messageType = messageType;
         this.identifier = identifier;

@@ -15,6 +15,7 @@ import de.timesnake.library.basic.util.Loggers;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -22,9 +23,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import java.util.logging.SocketHandler;
 
-/**
- * This class manages all and only local channel listeners
- */
 public class ChannelClient {
 
     /**
@@ -80,7 +78,6 @@ public class ChannelClient {
     protected boolean listenerLoaded = false;
     protected Set<ChannelMessage<?, ?>> messageStash = ConcurrentHashMap.newKeySet();
 
-
     public ChannelClient(ChannelBasis manager) {
         this.manager = manager;
 
@@ -91,6 +88,25 @@ public class ChannelClient {
         for (ChannelType<?> type : ChannelType.TYPES) {
             this.listenerHostByMessageTypeByChannelType.put(type, new ConcurrentHashMap<>());
         }
+    }
+
+    public void connectToProxy(ChannelListenerMessage<?> msg, Duration retryPeriod) {
+        boolean successful = this.sendMessageSynchronized(this.manager.getProxy(), msg);
+
+        if (successful) {
+            this.manager.onProxyConnected();
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(retryPeriod.toMillis());
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+
+            this.connectToProxy(msg, retryPeriod);
+        }).start();
     }
 
     public boolean sendListenerMessage(ListenerType type, ChannelMessageFilter<?> filter) {
@@ -189,13 +205,13 @@ public class ChannelClient {
         }
     }
 
-    protected void disconnectHost(Host host) {
+    public void disconnectHost(Host host) {
         try {
             Socket socket = this.socketByHost.remove(host);
             if (socket != null) {
                 socket.close();
             }
-            Loggers.CHANNEL.info("Closed socket to " + host);
+            Loggers.CHANNEL.finer("Closed socket to " + host);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -246,12 +262,14 @@ public class ChannelClient {
         new Thread(() -> this.sendMessageSynchronized(host, message)).start();
     }
 
-    public void sendMessageSynchronized(Host host, ChannelMessage<?, ?> message) {
+    public boolean sendMessageSynchronized(Host host, ChannelMessage<?, ?> message) {
         try {
             this.sendMessageSynchronized(host, message, 0);
+            return true;
         } catch (IOException e) {
             Loggers.CHANNEL.warning("Failed to setup connection to '"
                     + host.getHostname() + ":" + host.getPort() + "'");
+            return false;
         }
     }
 
@@ -267,7 +285,7 @@ public class ChannelClient {
 
         if (socket == null) {
             if (retry >= Channel.CONNECTION_RETRIES) {
-                throw new IOException("Unable to establish connection");
+                throw new IOException("Unable to establish connection to '" + host + "'");
             }
             this.sendMessageSynchronized(host, message, retry + 1);
             return;
@@ -279,11 +297,15 @@ public class ChannelClient {
                 socketWriter.write(message.toStream());
                 socketWriter.write(System.lineSeparator());
                 socketWriter.flush();
-                Loggers.CHANNEL.info("Message send to " + host + ": '" + message.toStream() + "'");
+                Loggers.CHANNEL.fine("Message send to " + host + ": '" + message.toStream() + "'");
             } else {
                 this.sendMessageSynchronized(host, message, retry + 1);
             }
         } catch (IOException ignored) {
         }
+    }
+
+    public ConcurrentHashMap<Host, Socket> getSocketByHost() {
+        return socketByHost;
     }
 }

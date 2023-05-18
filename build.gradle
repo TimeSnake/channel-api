@@ -11,5 +11,5 @@ dependencies {
 }
 
 group = project.group
-version = '1.0.1-SNAPSHOT'
+version = '2.0-SNAPSHOT'
 archivesBaseName = 'channel-api'

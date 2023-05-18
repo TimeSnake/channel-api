@@ -267,12 +267,15 @@ public abstract class MessageType<Value> {
         }
     }
 
-    public abstract static class Ping extends MessageType<Void> {
+    public abstract static class Heartbeat extends MessageType<Void> {
 
         public static final MessageType<Void> PING = new MessageTypeVoid("ping");
-        public static final MessageType<Void> PONG = new MessageTypeVoid("pong");
+        public static final MessageType<String> PONG = new MessageTypeString("pong");
+        public static final MessageType<Void> CHANNEL_PING = new MessageTypeVoid("channel_ping");
+        public static final MessageType<Void> CHANNEL_PONG = new MessageTypeVoid("channel_pong");
 
-        public static final Set<MessageType<?>> TYPES = Set.of(PING, PONG);
+        public static final Set<MessageType<?>> TYPES = Set.of(PING, PONG, CHANNEL_PING,
+                CHANNEL_PONG);
 
         public static MessageType<?> valueOf(String name) {
             if (name == null) {
@@ -286,7 +289,7 @@ public abstract class MessageType<Value> {
             return null;
         }
 
-        public Ping(String name) {
+        public Heartbeat(String name) {
             super(name);
         }
     }
