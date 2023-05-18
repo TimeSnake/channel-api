@@ -9,5 +9,5 @@ import java.util.Collection;
 @FunctionalInterface
 public interface ChannelMessageFilter<Identifier> {
 
-    Collection<Identifier> getIdentifierFilter();
+  Collection<Identifier> getIdentifierFilter();
 }
