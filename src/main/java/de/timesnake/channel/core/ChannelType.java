@@ -7,9 +7,9 @@ package de.timesnake.channel.core;
 import de.timesnake.channel.util.message.MessageType;
 import de.timesnake.channel.util.message.MessageType.Discord;
 import de.timesnake.channel.util.message.MessageType.Group;
+import de.timesnake.channel.util.message.MessageType.Heartbeat;
 import de.timesnake.channel.util.message.MessageType.Listener;
 import de.timesnake.channel.util.message.MessageType.Logging;
-import de.timesnake.channel.util.message.MessageType.Ping;
 import de.timesnake.channel.util.message.MessageType.Server;
 import de.timesnake.channel.util.message.MessageType.Support;
 import de.timesnake.channel.util.message.MessageType.Templates;
@@ -104,25 +104,25 @@ public abstract class ChannelType<Identifier> {
             return Group.TYPES;
         }
     };
-    public static final ChannelType<String> PING = new ChannelType<>("ping") {
+    public static final ChannelType<Host> HEARTBEAT = new ChannelType<>("heartbeat") {
         @Override
-        public String identifierToString(String s) {
-            return s;
+        public String identifierToString(Host s) {
+            return s.toString();
         }
 
         @Override
-        public String parseIdentifier(String identifier) {
-            return identifier;
+        public Host parseIdentifier(String identifier) {
+            return Host.parseHost(identifier);
         }
 
         @Override
         public MessageType<?> parseMessageType(String messageType) {
-            return MessageType.Ping.valueOf(messageType);
+            return Heartbeat.valueOf(messageType);
         }
 
         @Override
         public Collection<MessageType<?>> getMessageTypes() {
-            return Ping.TYPES;
+            return Heartbeat.TYPES;
         }
     };
     public static final ChannelType<String> SUPPORT = new ChannelType<>("support") {
@@ -211,7 +211,8 @@ public abstract class ChannelType<Identifier> {
         }
     };
 
-    public static final List<ChannelType<?>> TYPES = List.of(USER, SERVER, LISTENER, GROUP, PING,
+    public static final List<ChannelType<?>> TYPES = List.of(USER, SERVER, LISTENER, GROUP,
+            HEARTBEAT,
             SUPPORT, DISCORD, TEMPLATES, LOGGING);
 
     public static ChannelType<?> valueOf(String name) {

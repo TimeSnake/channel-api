@@ -11,9 +11,9 @@ import de.timesnake.channel.util.listener.InconsistentChannelListenerException;
 import de.timesnake.channel.util.listener.ListenerType;
 import de.timesnake.channel.util.message.ChannelDiscordMessage;
 import de.timesnake.channel.util.message.ChannelGroupMessage;
+import de.timesnake.channel.util.message.ChannelHeartbeatMessage;
 import de.timesnake.channel.util.message.ChannelListenerMessage;
 import de.timesnake.channel.util.message.ChannelMessage;
-import de.timesnake.channel.util.message.ChannelPingMessage;
 import de.timesnake.channel.util.message.ChannelServerMessage;
 import de.timesnake.channel.util.message.ChannelSupportMessage;
 import de.timesnake.channel.util.message.ChannelUserMessage;
@@ -50,7 +50,7 @@ public abstract class ChannelServer implements Runnable {
         try {
             this.startServer();
         } catch (Exception e) {
-            Loggers.CHANNEL.warning("Error while starting channel-server");
+            Loggers.CHANNEL.severe("Error while starting channel-server");
         }
     }
 
@@ -73,7 +73,7 @@ public abstract class ChannelServer implements Runnable {
 
             String inMsg;
             while ((inMsg = socketReader.readLine()) != null) {
-                Loggers.CHANNEL.info("Message received: " + inMsg);
+                Loggers.CHANNEL.fine("Message received: " + inMsg);
                 String[] args = inMsg.split(ChannelMessage.DIVIDER, 4);
 
                 ChannelType<?> type = ChannelType.valueOf(args[0]);
@@ -95,8 +95,8 @@ public abstract class ChannelServer implements Runnable {
     public void handleMessage(String[] args) {
         ChannelType<?> type = ChannelType.valueOf(args[0]);
 
-        if (ChannelType.PING.equals(type)) {
-            this.handlePingMessage(new ChannelPingMessage(args));
+        if (ChannelType.HEARTBEAT.equals(type)) {
+            this.handlePingMessage(new ChannelHeartbeatMessage<>(args));
             return;
         }
 
@@ -158,8 +158,8 @@ public abstract class ChannelServer implements Runnable {
 
     public abstract void runSync(SyncRun syncRun);
 
-    protected void handlePingMessage(ChannelPingMessage msg) {
-
+    protected void handlePingMessage(ChannelHeartbeatMessage<?> msg) {
+        this.manager.onPingMessage(msg);
     }
 
     protected void handleRemoteListenerMessage(ChannelListenerMessage<?> msg) {

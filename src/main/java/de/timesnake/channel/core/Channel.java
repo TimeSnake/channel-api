@@ -4,10 +4,11 @@
 
 package de.timesnake.channel.core;
 
+import de.timesnake.channel.util.message.ChannelHeartbeatMessage;
 import de.timesnake.channel.util.message.ChannelListenerMessage;
 import de.timesnake.channel.util.message.ChannelMessage;
-import de.timesnake.channel.util.message.ChannelPingMessage;
 import de.timesnake.channel.util.message.MessageType;
+import de.timesnake.channel.util.message.MessageType.Heartbeat;
 import de.timesnake.channel.util.message.MessageType.MessageIdentifierListener;
 import de.timesnake.channel.util.message.MessageType.MessageTypeListener;
 import de.timesnake.library.basic.util.Loggers;
@@ -76,12 +77,16 @@ public abstract class Channel extends ChannelBasis {
         }
 
         @Override
-        protected void handlePingMessage(ChannelPingMessage msg) {
-            ((ServerChannelClient) this.manager.client).sendPongMessage();
+        protected void handlePingMessage(ChannelHeartbeatMessage<?> msg) {
+            super.handlePingMessage(msg);
+            if (msg.getMessageType().equals(Heartbeat.PING)) {
+                ((ServerChannelClient) this.manager.client).sendPongMessage();
+            }
         }
 
         @Override
         protected void handleRemoteListenerMessage(ChannelListenerMessage<?> msg) {
+            super.handleRemoteListenerMessage(msg);
             ((ServerChannelClient) this.manager.client).handleRemoteListenerMessage(msg);
         }
     }
@@ -168,9 +173,8 @@ public abstract class Channel extends ChannelBasis {
         }
 
         protected void sendPongMessage() {
-            this.sendMessageToProxy(
-                    new ChannelPingMessage(((Channel) this.manager).getServerName(),
-                            MessageType.Ping.PONG));
+            this.sendMessageToProxy(new ChannelHeartbeatMessage(this.manager.getSelf(),
+                    Heartbeat.PONG, ((Channel) this.manager).getServerName()));
         }
     }
 }

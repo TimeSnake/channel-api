@@ -7,15 +7,16 @@ package de.timesnake.channel.util.listener;
 import de.timesnake.channel.core.ChannelType;
 import de.timesnake.channel.util.message.ChannelDiscordMessage;
 import de.timesnake.channel.util.message.ChannelGroupMessage;
+import de.timesnake.channel.util.message.ChannelHeartbeatMessage;
 import de.timesnake.channel.util.message.ChannelListenerMessage;
 import de.timesnake.channel.util.message.ChannelLoggingMessage;
 import de.timesnake.channel.util.message.ChannelMessage;
-import de.timesnake.channel.util.message.ChannelPingMessage;
 import de.timesnake.channel.util.message.ChannelServerMessage;
 import de.timesnake.channel.util.message.ChannelSupportMessage;
 import de.timesnake.channel.util.message.ChannelTemplatesMessage;
 import de.timesnake.channel.util.message.ChannelUserMessage;
 import de.timesnake.channel.util.message.MessageType;
+import de.timesnake.channel.util.message.MessageType.Heartbeat;
 import de.timesnake.channel.util.message.MessageType.Server;
 import de.timesnake.library.basic.util.Tuple;
 import java.util.List;
@@ -141,10 +142,10 @@ public enum ListenerType {
 
     GROUP(ChannelType.GROUP, null, ChannelGroupMessage.class, String.class),
 
-    PING_PING(ChannelType.PING, MessageType.Ping.PING, ChannelPingMessage.class, Void.class),
-    PING_PONG(ChannelType.PING, MessageType.Ping.PONG, ChannelPingMessage.class, Void.class),
+    PING_PING(ChannelType.HEARTBEAT, Heartbeat.PING, ChannelHeartbeatMessage.class, Void.class),
+    PING_PONG(ChannelType.HEARTBEAT, Heartbeat.PONG, ChannelHeartbeatMessage.class, String.class),
 
-    PING(ChannelType.PING, null, ChannelPingMessage.class, Void.class),
+    PING(ChannelType.HEARTBEAT, null, ChannelHeartbeatMessage.class, Void.class),
 
 
     DISCORD_MOVE_MEMBERS(ChannelType.DISCORD, MessageType.Discord.MOVE_MEMBERS,
