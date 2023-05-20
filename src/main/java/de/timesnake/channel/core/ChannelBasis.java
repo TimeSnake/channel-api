@@ -61,10 +61,12 @@ public abstract class ChannelBasis implements de.timesnake.channel.util.Channel 
 
     this.self = self;
     this.proxy = proxy;
+    this.load();
+  }
 
+  private void load() {
     this.loadChannelClient();
     this.loadChannelServer();
-    this.startTimeOutThread();
   }
 
   protected void loadChannelServer() {
@@ -92,7 +94,7 @@ public abstract class ChannelBasis implements de.timesnake.channel.util.Channel 
   public void start() {
     this.serverThread = new Thread(this.server);
     this.serverThread.start();
-    Loggers.CHANNEL.info("Network-channel started");
+    Loggers.CHANNEL.info("Channel started");
   }
 
   public void stop() {
@@ -100,7 +102,7 @@ public abstract class ChannelBasis implements de.timesnake.channel.util.Channel 
         Listener.UNREGISTER_HOST));
     if (this.serverThread.isAlive()) {
       this.serverThread.interrupt();
-      Loggers.CHANNEL.info("Network-channel stopped");
+      Loggers.CHANNEL.info("Channel stopped");
     }
 
     if (this.timeOutThread.isAlive()) {
@@ -176,7 +178,7 @@ public abstract class ChannelBasis implements de.timesnake.channel.util.Channel 
     ChannelBasis.this.client.disconnectHost(host);
   }
 
-  public void onPingMessage(ChannelHeartbeatMessage<?> msg) {
+  public void onHeartBeatMessage(ChannelHeartbeatMessage<?> msg) {
     if (msg.getMessageType().equals(Heartbeat.CHANNEL_PONG)) {
       this.pingedHosts.remove(msg.getSender());
     } else if (msg.getMessageType().equals(Heartbeat.CHANNEL_PING)) {
@@ -191,35 +193,37 @@ public abstract class ChannelBasis implements de.timesnake.channel.util.Channel 
     }
 
     this.timeOutThread = new Thread(() -> {
-      ChannelHeartbeatMessage<Void> msg = new ChannelHeartbeatMessage<>(this.self,
-          Heartbeat.CHANNEL_PING);
+      while (true) {
+        ChannelHeartbeatMessage<Void> msg = new ChannelHeartbeatMessage<>(this.self,
+            Heartbeat.CHANNEL_PING);
 
-      for (Entry<Host, Socket> entry : ChannelBasis.this.client.getSocketByHost()
-          .entrySet()) {
-        Host host = entry.getKey();
-        Socket socket = entry.getValue();
+        for (Entry<Host, Socket> entry : ChannelBasis.this.client.getSocketByHost()
+            .entrySet()) {
+          Host host = entry.getKey();
+          Socket socket = entry.getValue();
 
-        if (!socket.isConnected()) {
-          ChannelBasis.this.onHostTimeOut(host);
-        } else {
-          ChannelBasis.this.client.sendMessageSynchronized(host, msg);
-          ChannelBasis.this.pingedHosts.add(host);
+          if (!socket.isConnected()) {
+            ChannelBasis.this.onHostTimeOut(host);
+          } else {
+            ChannelBasis.this.client.sendMessageSynchronized(host, msg);
+            ChannelBasis.this.pingedHosts.add(host);
+          }
         }
-      }
 
-      try {
-        Thread.sleep(this.timeOut.toMillis());
-      } catch (InterruptedException ignored) {
-      }
+        try {
+          Thread.sleep(this.timeOut.toMillis());
+        } catch (InterruptedException ignored) {
+        }
 
-      for (Host host : ChannelBasis.this.pingedHosts) {
-        ChannelBasis.this.onHostTimeOut(host);
-      }
+        for (Host host : ChannelBasis.this.pingedHosts) {
+          ChannelBasis.this.onHostTimeOut(host);
+        }
 
-      ChannelBasis.this.pingedHosts.clear();
-      this.startTimeOutThread();
+        ChannelBasis.this.pingedHosts.clear();
+      }
     });
+    this.timeOutThread.setDaemon(true);
     this.timeOutThread.start();
-    Loggers.CHANNEL.fine("Started channel time out ping");
+    Loggers.CHANNEL.info("Started channel time out ping");
   }
 }

@@ -211,7 +211,7 @@ public class ChannelClient {
       if (socket != null) {
         socket.close();
       }
-      Loggers.CHANNEL.finer("Closed socket to " + host);
+      Loggers.CHANNEL.info("Closed socket to " + host);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -297,7 +297,7 @@ public class ChannelClient {
         socketWriter.write(message.toStream());
         socketWriter.write(System.lineSeparator());
         socketWriter.flush();
-        Loggers.CHANNEL.fine("Message send to " + host + ": '" + message.toStream() + "'");
+        Loggers.CHANNEL.info("Message send to " + host + ": '" + message.toStream() + "'");
       } else {
         this.sendMessageSynchronized(host, message, retry + 1);
       }
