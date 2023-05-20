@@ -77,8 +77,8 @@ public abstract class Channel extends ChannelBasis {
     }
 
     @Override
-    protected void handlePingMessage(ChannelHeartbeatMessage<?> msg) {
-      super.handlePingMessage(msg);
+    protected void handleHeartBeatMessage(ChannelHeartbeatMessage<?> msg) {
+      super.handleHeartBeatMessage(msg);
       if (msg.getMessageType().equals(Heartbeat.PING)) {
         ((ServerChannelClient) this.manager.client).sendPongMessage();
       }

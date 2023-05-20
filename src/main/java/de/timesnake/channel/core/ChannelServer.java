@@ -73,7 +73,7 @@ public abstract class ChannelServer implements Runnable {
 
       String inMsg;
       while ((inMsg = socketReader.readLine()) != null) {
-        Loggers.CHANNEL.fine("Message received: " + inMsg);
+        Loggers.CHANNEL.info("Message received: " + inMsg);
         String[] args = inMsg.split(ChannelMessage.DIVIDER, 4);
 
         ChannelType<?> type = ChannelType.valueOf(args[0]);
@@ -96,7 +96,7 @@ public abstract class ChannelServer implements Runnable {
     ChannelType<?> type = ChannelType.valueOf(args[0]);
 
     if (ChannelType.HEARTBEAT.equals(type)) {
-      this.handlePingMessage(new ChannelHeartbeatMessage<>(args));
+      this.handleHeartBeatMessage(new ChannelHeartbeatMessage<>(args));
       return;
     }
 
@@ -158,8 +158,8 @@ public abstract class ChannelServer implements Runnable {
 
   public abstract void runSync(SyncRun syncRun);
 
-  protected void handlePingMessage(ChannelHeartbeatMessage<?> msg) {
-    this.manager.onPingMessage(msg);
+  protected void handleHeartBeatMessage(ChannelHeartbeatMessage<?> msg) {
+    this.manager.onHeartBeatMessage(msg);
   }
 
   protected void handleRemoteListenerMessage(ChannelListenerMessage<?> msg) {
