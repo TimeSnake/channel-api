@@ -32,7 +32,7 @@ public abstract class ChannelBasis implements de.timesnake.channel.util.Channel 
   }
 
   protected static final String LISTEN_IP = "0.0.0.0";
-  protected static final String SERVER_IP = "127.0.0.1";
+  protected static final String SERVER_IP = "192.168.178.72";
   protected static final int CONNECTION_RETRIES = 3;
   private static ChannelBasis instance;
 
@@ -182,6 +182,7 @@ public abstract class ChannelBasis implements de.timesnake.channel.util.Channel 
     if (msg.getMessageType().equals(Heartbeat.CHANNEL_PONG)) {
       this.pingedHosts.remove(msg.getSender());
     } else if (msg.getMessageType().equals(Heartbeat.CHANNEL_PING)) {
+      System.out.println(msg.getSender());
       this.client.sendMessageSynchronized(msg.getSender(),
           new ChannelHeartbeatMessage<>(this.self, Heartbeat.CHANNEL_PONG));
     }

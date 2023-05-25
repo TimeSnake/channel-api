@@ -14,12 +14,14 @@ import de.timesnake.channel.util.message.MessageType.Listener;
 import de.timesnake.library.basic.util.Loggers;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.net.ConnectException;
 import java.net.Socket;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 import java.util.logging.SocketHandler;
 
@@ -264,7 +266,7 @@ public class ChannelClient {
 
   public boolean sendMessageSynchronized(Host host, ChannelMessage<?, ?> message) {
     try {
-      this.sendMessageSynchronized(host, message, 0);
+      this.sendMessageSynchronized(host, message, 0, null);
       return true;
     } catch (IOException e) {
       Loggers.CHANNEL.warning("Failed to setup connection to '"
@@ -273,21 +275,26 @@ public class ChannelClient {
     }
   }
 
-  public void sendMessageSynchronized(Host host, ChannelMessage<?, ?> message, int retry)
+  public final void sendMessageSynchronized(Host host, ChannelMessage<?, ?> message, int retry,
+      Exception lastException)
       throws IOException {
+    AtomicReference<Exception> exception = new AtomicReference<>();
+
     Socket socket = this.socketByHost.computeIfAbsent(host, h -> {
       try {
         return new Socket(host.getHostname(), host.getPort());
       } catch (IOException e) {
+        exception.set(e);
         return null;
       }
     });
 
     if (socket == null) {
       if (retry >= Channel.CONNECTION_RETRIES) {
-        throw new IOException("Unable to establish connection to '" + host + "'");
+        throw new IOException("Unable to establish connection to '" + host + "': "
+            + lastException.getMessage());
       }
-      this.sendMessageSynchronized(host, message, retry + 1);
+      this.sendMessageSynchronized(host, message, retry + 1, exception.get());
       return;
     }
 
@@ -299,9 +306,11 @@ public class ChannelClient {
         socketWriter.flush();
         Loggers.CHANNEL.info("Message send to " + host + ": '" + message.toStream() + "'");
       } else {
-        this.sendMessageSynchronized(host, message, retry + 1);
+        this.sendMessageSynchronized(host, message, retry + 1,
+            new ConnectException("socket is not connected"));
       }
-    } catch (IOException ignored) {
+    } catch (IOException e) {
+      this.sendMessageSynchronized(host, message, retry + 1, e);
     }
   }
 
