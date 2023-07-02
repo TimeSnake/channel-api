@@ -5,6 +5,7 @@
 package de.timesnake.channel.util.message;
 
 import de.timesnake.channel.core.ChannelType;
+import org.jetbrains.annotations.NotNull;
 
 public class ChannelTemplatesMessage<Value> extends ChannelMessage<String, Value> {
 
@@ -12,7 +13,7 @@ public class ChannelTemplatesMessage<Value> extends ChannelMessage<String, Value
     super(args);
   }
 
-  public ChannelTemplatesMessage(String name, MessageType<Value> type, Value value) {
+  public ChannelTemplatesMessage(@NotNull String name, @NotNull MessageType<Value> type, Value value) {
     super(ChannelType.TEMPLATES, name, type, value);
     if (!MessageType.Templates.TYPES.contains(type)) {
       throw new InvalidMessageTypeException();

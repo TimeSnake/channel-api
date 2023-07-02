@@ -13,6 +13,8 @@ import de.timesnake.channel.util.message.ChannelMessage;
 import de.timesnake.channel.util.message.MessageType.Heartbeat;
 import de.timesnake.channel.util.message.MessageType.Listener;
 import de.timesnake.library.basic.util.Loggers;
+import org.jetbrains.annotations.NotNull;
+
 import java.net.Socket;
 import java.time.Duration;
 import java.util.HashSet;
@@ -31,16 +33,16 @@ public abstract class ChannelBasis implements de.timesnake.channel.util.Channel 
     }
   }
 
-  protected static final String LISTEN_IP = "0.0.0.0";
-  protected static final String SERVER_IP = "192.168.178.72";
   protected static final int CONNECTION_RETRIES = 3;
   private static ChannelBasis instance;
 
   protected final Thread mainThread;
 
+  protected String listenHostName;
   protected final Host self;
 
   protected final Host proxy;
+  protected final String proxyName;
 
   protected ChannelServer server;
   protected Thread serverThread;
@@ -51,16 +53,14 @@ public abstract class ChannelBasis implements de.timesnake.channel.util.Channel 
   protected Thread timeOutThread;
   protected final Set<Host> pingedHosts = new HashSet<>();
 
-  protected ChannelBasis(Thread mainThread, int socketPort, int proxySocketPort) {
-    this(mainThread, new Host(SERVER_IP, socketPort),
-        new Host(SERVER_IP, proxySocketPort));
-  }
-
-  protected ChannelBasis(Thread mainThread, Host self, Host proxy) {
+  protected ChannelBasis(@NotNull Thread mainThread, @NotNull Host self, @NotNull Host proxy,
+                         @NotNull String listenHostName, @NotNull String proxyName) {
     this.mainThread = mainThread;
 
     this.self = self;
     this.proxy = proxy;
+    this.listenHostName = listenHostName;
+    this.proxyName = proxyName;
     this.load();
   }
 
@@ -98,8 +98,8 @@ public abstract class ChannelBasis implements de.timesnake.channel.util.Channel 
   }
 
   public void stop() {
-    this.client.sendMessageToProxy(new ChannelListenerMessage<>(this.getSelf(),
-        Listener.UNREGISTER_HOST));
+    final ChannelListenerMessage<Void> message = new ChannelListenerMessage<>(this.getSelf(), Listener.UNREGISTER_HOST);
+    this.client.sendMessageToProxy(message);
     if (this.serverThread.isAlive()) {
       this.serverThread.interrupt();
       Loggers.CHANNEL.info("Channel stopped");
@@ -118,6 +118,15 @@ public abstract class ChannelBasis implements de.timesnake.channel.util.Channel 
 
   public Host getProxy() {
     return proxy;
+  }
+
+  public String getListenHostName() {
+    return listenHostName;
+  }
+
+  @Override
+  public String getProxyName() {
+    return proxyName;
   }
 
   public void sendMessage(ChannelMessage<?, ?> message) {
@@ -175,15 +184,14 @@ public abstract class ChannelBasis implements de.timesnake.channel.util.Channel 
 
   public void onHostTimeOut(Host host) {
     Loggers.CHANNEL.warning("Lost connection to '" + host + "'");
-    ChannelBasis.this.client.disconnectHost(host);
+    this.client.disconnectHost(host);
   }
 
   public void onHeartBeatMessage(ChannelHeartbeatMessage<?> msg) {
     if (msg.getMessageType().equals(Heartbeat.CHANNEL_PONG)) {
-      this.pingedHosts.remove(msg.getSender());
+      this.pingedHosts.remove(msg.getIdentifier());
     } else if (msg.getMessageType().equals(Heartbeat.CHANNEL_PING)) {
-      System.out.println(msg.getSender());
-      this.client.sendMessageSynchronized(msg.getSender(),
+      this.client.sendMessageSynchronized(msg.getIdentifier(),
           new ChannelHeartbeatMessage<>(this.self, Heartbeat.CHANNEL_PONG));
     }
   }

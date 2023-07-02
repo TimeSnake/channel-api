@@ -12,6 +12,7 @@ import de.timesnake.channel.util.message.ChannelMessage;
 import de.timesnake.channel.util.message.MessageType;
 import de.timesnake.channel.util.message.MessageType.Listener;
 import de.timesnake.library.basic.util.Loggers;
+
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.ConnectException;
@@ -40,7 +41,7 @@ public class ChannelClient {
    * @return true if message is interesting for server, else false
    */
   public static boolean isInterestingForServer(Host host, String serverName,
-      ChannelListenerMessage<?> msg) {
+                                               ChannelListenerMessage<?> msg) {
     if (msg.getMessageType().equals(MessageType.Listener.IDENTIFIER_LISTENER)) {
       if (((MessageType.MessageIdentifierListener<?>) msg.getValue()).getChannelType()
           .equals(ChannelType.SERVER)) {
@@ -50,7 +51,7 @@ public class ChannelClient {
         }
       }
     }
-    return !msg.getSenderHost().equals(host);
+    return !msg.getIdentifier().equals(host);
   }
 
   protected final ChannelBasis manager;
@@ -129,14 +130,12 @@ public class ChannelClient {
 
           this.sendListenerNames.add(name);
 
-          this.sendMessage(new ChannelListenerMessage<>(this.manager.getSelf(),
-              MessageType.Listener.IDENTIFIER_LISTENER,
+          this.sendMessage(new ChannelListenerMessage<>(this.manager.getSelf(), MessageType.Listener.IDENTIFIER_LISTENER,
               new MessageType.MessageIdentifierListener<>(ChannelType.SERVER, name)));
         }
       } else {
         if (this.sendListenerMessageTypeAll ||
-            (type.getMessageType() != null && this.sendListenerMessageTypes.contains(
-                type.getMessageType()))) {
+            (type.getMessageType() != null && this.sendListenerMessageTypes.contains(type.getMessageType()))) {
           return true;
         }
 
@@ -146,10 +145,8 @@ public class ChannelClient {
           this.sendListenerMessageTypes.add(type.getMessageType());
         }
 
-        this.sendMessage(new ChannelListenerMessage<>(this.manager.getSelf(),
-            MessageType.Listener.MESSAGE_TYPE_LISTENER,
-            new MessageType.MessageTypeListener(ChannelType.SERVER,
-                type.getMessageType())));
+        this.sendMessage(new ChannelListenerMessage<>(this.manager.getSelf(), MessageType.Listener.MESSAGE_TYPE_LISTENER,
+            new MessageType.MessageTypeListener(ChannelType.SERVER, type.getMessageType())));
       }
       return true;
     } else if (type.getChannelType().equals(ChannelType.LOGGING)) {
@@ -169,10 +166,8 @@ public class ChannelClient {
 
           this.sendLoggingListeners.add(name);
 
-          this.sendMessage(new ChannelListenerMessage<>(this.manager.getSelf(),
-              Listener.IDENTIFIER_LISTENER,
-              new MessageType.MessageIdentifierListener<>(ChannelType.LOGGING,
-                  name)));
+          this.sendMessage(new ChannelListenerMessage<>(this.manager.getSelf(), Listener.IDENTIFIER_LISTENER,
+              new MessageType.MessageIdentifierListener<>(ChannelType.LOGGING, name)));
         }
       } else {
         if (this.sendLoggingListenerAll ||
@@ -187,10 +182,8 @@ public class ChannelClient {
           this.sendListenerMessageTypes.add(type.getMessageType());
         }
 
-        this.sendMessage(new ChannelListenerMessage<>(this.manager.getSelf(),
-            Listener.MESSAGE_TYPE_LISTENER,
-            new MessageType.MessageTypeListener(ChannelType.LOGGING,
-                type.getMessageType())));
+        this.sendMessage(new ChannelListenerMessage<>(this.manager.getSelf(), Listener.MESSAGE_TYPE_LISTENER,
+            new MessageType.MessageTypeListener(ChannelType.LOGGING, type.getMessageType())));
       }
       return true;
     }
@@ -276,7 +269,7 @@ public class ChannelClient {
   }
 
   public final void sendMessageSynchronized(Host host, ChannelMessage<?, ?> message, int retry,
-      Exception lastException)
+                                            Exception lastException)
       throws IOException {
     AtomicReference<Exception> exception = new AtomicReference<>();
 
@@ -289,11 +282,13 @@ public class ChannelClient {
       }
     });
 
+    if (retry >= Channel.CONNECTION_RETRIES) {
+      throw new IOException("Unable to establish connection to '" + host + "': "
+          + lastException.getMessage());
+    }
+
     if (socket == null) {
-      if (retry >= Channel.CONNECTION_RETRIES) {
-        throw new IOException("Unable to establish connection to '" + host + "': "
-            + lastException.getMessage());
-      }
+      this.socketByHost.remove(host);
       this.sendMessageSynchronized(host, message, retry + 1, exception.get());
       return;
     }

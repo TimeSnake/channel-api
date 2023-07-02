@@ -8,13 +8,8 @@ import de.timesnake.channel.core.ChannelType;
 import de.timesnake.library.basic.util.Status;
 import de.timesnake.library.basic.util.Triple;
 import de.timesnake.library.basic.util.Tuple;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+
+import java.util.*;
 
 public abstract class MessageType<Value> {
 
@@ -220,8 +215,7 @@ public abstract class MessageType<Value> {
         "unregister_server");
 
     public static final MessageType<Void> REGISTER_HOST = new MessageTypeVoid("register_host");
-    public static final MessageType<Void> UNREGISTER_HOST = new MessageTypeVoid(
-        "unregister_host");
+    public static final MessageType<Void> UNREGISTER_HOST = new MessageTypeVoid("unregister_host");
 
     public static final MessageType<Void> CLOSE_SOCKET = new MessageTypeVoid("close_socket");
 
@@ -579,7 +573,7 @@ public abstract class MessageType<Value> {
     private final MessageType<B> bMessageType;
 
     public MessageTypeTuple(String name, MessageType<A> aMessageType,
-        MessageType<B> bMessageType) {
+                            MessageType<B> bMessageType) {
       super(name);
       this.aMessageType = aMessageType;
       this.bMessageType = bMessageType;
@@ -606,7 +600,7 @@ public abstract class MessageType<Value> {
     private final MessageType<C> cMessageType;
 
     public MessageTypeTriple(String name, MessageType<A> aMessageType,
-        MessageType<B> bMessageType, MessageType<C> cMessageType) {
+                             MessageType<B> bMessageType, MessageType<C> cMessageType) {
       super(name);
       this.aMessageType = aMessageType;
       this.bMessageType = bMessageType;
@@ -642,7 +636,7 @@ public abstract class MessageType<Value> {
     private final Identifier identifier;
 
     public MessageIdentifierListener(ChannelType<Identifier> channelType,
-        Identifier identifier) {
+                                     Identifier identifier) {
       this.channelType = channelType;
       this.identifier = identifier;
     }
