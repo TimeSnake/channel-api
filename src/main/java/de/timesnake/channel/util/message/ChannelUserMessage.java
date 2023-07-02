@@ -5,6 +5,8 @@
 package de.timesnake.channel.util.message;
 
 import de.timesnake.channel.core.ChannelType;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.UUID;
 
 public class ChannelUserMessage<Value> extends ChannelMessage<UUID, Value> {
@@ -13,20 +15,21 @@ public class ChannelUserMessage<Value> extends ChannelMessage<UUID, Value> {
     super(args);
   }
 
-  public ChannelUserMessage(UUID uuid, MessageType<Value> type, Value value) {
+  public ChannelUserMessage(@NotNull UUID uuid, @NotNull MessageType<Value> type, Value value) {
     super(ChannelType.USER, uuid, type, value);
     if (!MessageType.User.TYPES.contains(type)) {
       throw new InvalidMessageTypeException();
     }
   }
 
-  public ChannelUserMessage(UUID uuid, MessageType<Value> type) {
+  public ChannelUserMessage(@NotNull UUID uuid, @NotNull MessageType<Value> type) {
     super(ChannelType.USER, uuid, type);
     if (!MessageType.User.TYPES.contains(type)) {
       throw new InvalidMessageTypeException();
     }
   }
 
+  @NotNull
   public UUID getUniqueId() {
     return this.getIdentifier();
   }

@@ -4,22 +4,11 @@
 
 package de.timesnake.channel.core;
 
-import de.timesnake.channel.util.listener.ChannelHandler;
-import de.timesnake.channel.util.listener.ChannelListener;
-import de.timesnake.channel.util.listener.ChannelMessageFilter;
-import de.timesnake.channel.util.listener.InconsistentChannelListenerException;
-import de.timesnake.channel.util.listener.ListenerType;
-import de.timesnake.channel.util.message.ChannelDiscordMessage;
-import de.timesnake.channel.util.message.ChannelGroupMessage;
-import de.timesnake.channel.util.message.ChannelHeartbeatMessage;
-import de.timesnake.channel.util.message.ChannelListenerMessage;
-import de.timesnake.channel.util.message.ChannelMessage;
-import de.timesnake.channel.util.message.ChannelServerMessage;
-import de.timesnake.channel.util.message.ChannelSupportMessage;
-import de.timesnake.channel.util.message.ChannelUserMessage;
-import de.timesnake.channel.util.message.MessageType;
+import de.timesnake.channel.util.listener.*;
+import de.timesnake.channel.util.message.*;
 import de.timesnake.library.basic.util.Loggers;
 import de.timesnake.library.basic.util.Tuple;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
@@ -57,7 +46,7 @@ public abstract class ChannelServer implements Runnable {
   @SuppressWarnings("resource")
   private void startServer() throws Exception {
     ServerSocket serverSocket = new ServerSocket(this.manager.getSelf().getPort(), 100,
-        InetAddress.getByName(Channel.LISTEN_IP));
+        InetAddress.getByName(this.manager.getListenHostName()));
 
     while (true) {
       final Socket activeSocket = serverSocket.accept();
@@ -70,6 +59,8 @@ public abstract class ChannelServer implements Runnable {
     try {
       BufferedReader socketReader;
       socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+      Host sender = new Host(socket.getInetAddress().getHostName(), socket.getPort());
 
       String inMsg;
       while ((inMsg = socketReader.readLine()) != null) {

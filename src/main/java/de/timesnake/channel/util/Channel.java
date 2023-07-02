@@ -27,4 +27,6 @@ public interface Channel {
   void sendMessageSynchronized(ChannelMessage<?, ?> message);
 
   Host getHost();
+
+  String getProxyName();
 }

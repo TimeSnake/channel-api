@@ -5,11 +5,9 @@
 package de.timesnake.channel.util.message;
 
 import de.timesnake.channel.core.ChannelType;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.UUID;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.*;
 
 public class ChannelDiscordMessage<Value> extends ChannelMessage<String, Value> {
 
@@ -17,7 +15,7 @@ public class ChannelDiscordMessage<Value> extends ChannelMessage<String, Value> 
     super(args);
   }
 
-  public ChannelDiscordMessage(String category, MessageType<Value> type, Value value) {
+  public ChannelDiscordMessage(@NotNull String category, @NotNull MessageType<Value> type, Value value) {
     super(ChannelType.DISCORD, category, type, value);
     if (!MessageType.Discord.TYPES.contains(type)) {
       throw new InvalidMessageTypeException();

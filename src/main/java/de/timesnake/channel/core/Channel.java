@@ -4,6 +4,7 @@
 
 package de.timesnake.channel.core;
 
+import de.timesnake.channel.util.ChannelConfig;
 import de.timesnake.channel.util.message.ChannelHeartbeatMessage;
 import de.timesnake.channel.util.message.ChannelListenerMessage;
 import de.timesnake.channel.util.message.ChannelMessage;
@@ -12,6 +13,8 @@ import de.timesnake.channel.util.message.MessageType.Heartbeat;
 import de.timesnake.channel.util.message.MessageType.MessageIdentifierListener;
 import de.timesnake.channel.util.message.MessageType.MessageTypeListener;
 import de.timesnake.library.basic.util.Loggers;
+import org.jetbrains.annotations.NotNull;
+
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
@@ -19,28 +22,24 @@ import java.util.logging.SocketHandler;
 
 public abstract class Channel extends ChannelBasis {
 
-  public static final String PROXY_NAME = "proxy";
-
-  public static final Integer ADD = 10000;
-
   public static Channel getInstance() {
     return (Channel) ChannelBasis.getInstance();
   }
 
-  protected final String serverName;
-  protected final Integer serverPort;
+  protected final @NotNull String serverName;
 
-  protected Channel(Thread mainThread, String serverName, int serverPort, int proxy) {
-    super(mainThread, serverPort + ADD, proxy + ADD);
+  protected Channel(@NotNull Thread mainThread, @NotNull ChannelConfig config, @NotNull String serverName, int serverPort) {
+    super(mainThread,
+        new Host(config.getServerHostName(), serverPort + config.getPortOffset()),
+        new Host(config.getProxyHostName(), config.getProxyPort()),
+        config.getListenHostName(), config.getProxyServerName());
 
     this.serverName = serverName;
-    this.serverPort = serverPort;
   }
 
   @Override
   public void stop() {
-    this.client.sendMessageToProxy(new ChannelListenerMessage<>(this.getSelf(),
-        MessageType.Listener.UNREGISTER_SERVER, this.getServerName()));
+    this.client.sendMessageToProxy(new ChannelListenerMessage<>(this.getSelf(), MessageType.Listener.UNREGISTER_SERVER, this.getServerName()));
     if (this.serverThread.isAlive()) {
       this.serverThread.interrupt();
       Loggers.CHANNEL.info("Network-channel stopped");
@@ -59,10 +58,6 @@ public abstract class Channel extends ChannelBasis {
 
   public String getServerName() {
     return serverName;
-  }
-
-  public Integer getServerPort() {
-    return serverPort;
   }
 
   public static class ServerChannelServer extends ChannelServer {
@@ -102,7 +97,7 @@ public abstract class Channel extends ChannelBasis {
           || msg.getMessageType().equals(MessageType.Listener.MESSAGE_TYPE_LISTENER)) {
         this.addRemoteListener(msg);
       } else if (msg.getMessageType().equals(MessageType.Listener.REGISTER_SERVER)
-          && msg.getSenderHost().equals(this.manager.getProxy())) {
+          && msg.getIdentifier().equals(this.manager.getProxy())) {
         Loggers.CHANNEL.info("Receiving of listeners finished");
         this.listenerLoaded = true;
         for (ChannelMessage<?, ?> serverMsg : this.messageStash) {
@@ -110,7 +105,7 @@ public abstract class Channel extends ChannelBasis {
         }
         this.messageStash.clear();
       } else if (msg.getMessageType().equals(MessageType.Listener.UNREGISTER_SERVER)) {
-        Host host = msg.getSenderHost();
+        Host host = msg.getIdentifier();
 
         if (host != null) {
           this.listenerHostByMessageTypeByChannelType.forEach((k, v) -> v.remove(host));
@@ -122,7 +117,7 @@ public abstract class Channel extends ChannelBasis {
     }
 
     public void addRemoteListener(ChannelListenerMessage<?> msg) {
-      Host senderHost = msg.getSenderHost();
+      Host senderHost = msg.getIdentifier();
 
       if (senderHost.equals(this.manager.getSelf())) {
         return;
@@ -132,7 +127,7 @@ public abstract class Channel extends ChannelBasis {
         MessageIdentifierListener<?> identifierListener = (MessageIdentifierListener<?>) msg.getValue();
 
         if (identifierListener.getChannelType().equals(ChannelType.LOGGING)) {
-          this.addLogListener(msg.getSenderHost());
+          this.addLogListener(msg.getIdentifier());
           return;
         }
         // prevent registration of server listener, which not belongs to this server
@@ -150,7 +145,7 @@ public abstract class Channel extends ChannelBasis {
         MessageTypeListener typeListener = (MessageTypeListener) msg.getValue();
 
         if (typeListener.getChannelType().equals(ChannelType.LOGGING)) {
-          this.addLogListener(msg.getSenderHost());
+          this.addLogListener(msg.getIdentifier());
           return;
         }
 
@@ -159,7 +154,7 @@ public abstract class Channel extends ChannelBasis {
                 k -> ConcurrentHashMap.newKeySet()).add(senderHost);
       }
 
-      Loggers.CHANNEL.info("Added remote listener from '" + msg.getSenderHost() + "'");
+      Loggers.CHANNEL.info("Added remote listener from '" + msg.getIdentifier() + "'");
     }
 
     protected void addLogListener(Host host) {

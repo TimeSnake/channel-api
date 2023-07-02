@@ -6,6 +6,8 @@ package de.timesnake.channel.util.message;
 
 import de.timesnake.channel.core.ChannelType;
 import de.timesnake.channel.core.UnknownTypeException;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class ChannelMessage<Identifier, Value> {
 
@@ -38,9 +40,9 @@ public abstract class ChannelMessage<Identifier, Value> {
     }
   }
 
-  public ChannelMessage(ChannelType<Identifier> channelType, Identifier identifier,
-      MessageType<Value> messageType,
-      Value value) {
+  public ChannelMessage(@NotNull ChannelType<Identifier> channelType, @NotNull Identifier identifier,
+                        @NotNull MessageType<Value> messageType,
+                        Value value) {
     this.channelType = channelType;
     this.messageType = messageType;
     this.identifier = identifier;
@@ -48,8 +50,8 @@ public abstract class ChannelMessage<Identifier, Value> {
   }
 
 
-  public ChannelMessage(ChannelType<Identifier> channelType, Identifier identifier,
-      MessageType<Value> messageType) {
+  public ChannelMessage(@NotNull ChannelType<Identifier> channelType, @NotNull Identifier identifier,
+                        MessageType<Value> messageType) {
     this.channelType = channelType;
     this.messageType = messageType;
     this.identifier = identifier;
@@ -71,10 +73,12 @@ public abstract class ChannelMessage<Identifier, Value> {
     return messageType;
   }
 
+  @NotNull
   public Identifier getIdentifier() {
     return identifier;
   }
 
+  @Nullable
   public Value getValue() {
     return value;
   }
