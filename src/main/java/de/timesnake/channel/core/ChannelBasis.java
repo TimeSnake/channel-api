@@ -94,7 +94,7 @@ public abstract class ChannelBasis implements de.timesnake.channel.util.Channel 
   public void start() {
     this.serverThread = new Thread(this.server);
     this.serverThread.start();
-    Loggers.CHANNEL.info("Channel started");
+    Loggers.CHANNEL.info("Channel started, listening on " + this.self);
   }
 
   public void stop() {
