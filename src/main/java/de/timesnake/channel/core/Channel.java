@@ -4,172 +4,235 @@
 
 package de.timesnake.channel.core;
 
-import de.timesnake.channel.util.ChannelConfig;
+import de.timesnake.channel.util.listener.ChannelListener;
+import de.timesnake.channel.util.listener.ChannelMessageFilter;
+import de.timesnake.channel.util.listener.ListenerType;
 import de.timesnake.channel.util.message.ChannelHeartbeatMessage;
 import de.timesnake.channel.util.message.ChannelListenerMessage;
 import de.timesnake.channel.util.message.ChannelMessage;
-import de.timesnake.channel.util.message.MessageType;
 import de.timesnake.channel.util.message.MessageType.Heartbeat;
-import de.timesnake.channel.util.message.MessageType.MessageIdentifierListener;
-import de.timesnake.channel.util.message.MessageType.MessageTypeListener;
+import de.timesnake.channel.util.message.MessageType.Listener;
 import de.timesnake.library.basic.util.Loggers;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Logger;
-import java.util.logging.SocketHandler;
+import java.net.Socket;
+import java.time.Duration;
+import java.util.HashSet;
+import java.util.Map.Entry;
+import java.util.Set;
 
-public abstract class Channel extends ChannelBasis {
+public abstract class Channel implements de.timesnake.channel.util.Channel {
 
   public static Channel getInstance() {
-    return (Channel) ChannelBasis.getInstance();
+    return instance;
   }
 
-  protected final @NotNull String serverName;
-
-  protected Channel(@NotNull Thread mainThread, @NotNull ChannelConfig config, @NotNull String serverName, int serverPort) {
-    super(mainThread,
-        new Host(config.getServerHostName(), serverPort + config.getPortOffset()),
-        new Host(config.getProxyHostName(), config.getProxyPort()),
-        config.getListenHostName(), config.getProxyServerName());
-
-    this.serverName = serverName;
+  public static void setInstance(Channel channel) {
+    if (instance == null) {
+      instance = channel;
+    }
   }
 
-  @Override
+  protected static final Duration DEFAULT_TIME_OUT = Duration.ofSeconds(40);
+  protected static final int CONNECTION_RETRIES = 3;
+  private static Channel instance;
+
+  protected final Thread mainThread;
+
+  protected String listenHostName;
+  protected final Host self;
+
+  protected final Host proxy;
+  protected final String proxyName;
+
+  protected ChannelServer server;
+  protected Thread serverThread;
+
+  protected ChannelClient client;
+
+  protected Duration timeOut = null;
+  protected Thread timeOutThread;
+  protected final Set<Host> pingedHosts = new HashSet<>();
+
+  protected Channel(@NotNull Thread mainThread, @NotNull Host self, @NotNull Host proxy,
+                    @NotNull String listenHostName, @NotNull String proxyName) {
+    this.mainThread = mainThread;
+
+    this.self = self;
+    this.proxy = proxy;
+    this.listenHostName = listenHostName;
+    this.proxyName = proxyName;
+    this.load();
+    this.setTimeOut(DEFAULT_TIME_OUT);
+  }
+
+  private void load() {
+    this.loadChannelClient();
+    this.loadChannelServer();
+  }
+
+  protected void loadChannelServer() {
+    this.server = new ChannelServer(this) {
+      @Override
+      public void runSync(SyncRun syncRun) {
+        Channel.this.runSync(syncRun);
+      }
+    };
+  }
+
+  protected void loadChannelClient() {
+    this.client = new ChannelClient(this);
+  }
+
+  protected void setTimeOut(Duration duration) {
+    this.timeOut = duration;
+
+    if (this.timeOutThread != null && this.timeOutThread.isAlive()) {
+      this.timeOutThread.interrupt();
+    }
+    this.startTimeOutThread();
+  }
+
+  public void start() {
+    this.serverThread = new Thread(this.server);
+    this.serverThread.start();
+    Loggers.CHANNEL.info("Channel started, listening on " + this.self);
+  }
+
   public void stop() {
-    this.client.sendMessageToProxy(new ChannelListenerMessage<>(this.getSelf(), MessageType.Listener.UNREGISTER_SERVER, this.getServerName()));
+    final ChannelListenerMessage<Void> message = new ChannelListenerMessage<>(this.getSelf(), Listener.UNREGISTER_HOST);
+    this.client.sendMessageToProxy(message);
     if (this.serverThread.isAlive()) {
       this.serverThread.interrupt();
-      Loggers.CHANNEL.info("Network-channel stopped");
+      Loggers.CHANNEL.info("Channel stopped");
     }
+
+    if (this.timeOutThread.isAlive()) {
+      this.timeOutThread.interrupt();
+    }
+  }
+
+  protected abstract void runSync(SyncRun syncRun);
+
+  public Host getSelf() {
+    return self;
+  }
+
+  public Host getProxy() {
+    return proxy;
+  }
+
+  public String getListenHostName() {
+    return listenHostName;
   }
 
   @Override
-  protected void loadChannelServer() {
-    this.server = new ServerChannelServer(this);
+  public String getProxyName() {
+    return proxyName;
+  }
+
+  public void sendMessage(ChannelMessage<?, ?> message) {
+    this.client.sendMessage(message);
+  }
+
+  public void sendMessageToProxy(ChannelMessage<?, ?> message) {
+    this.client.sendMessageToProxy(message);
+  }
+
+  protected void sendListenerMessage(ListenerType type, ChannelMessageFilter<?> filter) {
+    this.client.sendListenerMessage(type, filter);
   }
 
   @Override
-  protected void loadChannelClient() {
-    this.client = new ServerChannelClient(this);
+  public void addListener(ChannelListener listener) {
+    this.server.addLocalListener(listener);
   }
 
-  public String getServerName() {
-    return serverName;
+  @Override
+  public void addListener(ChannelListener listener, ChannelMessageFilter<?> filter) {
+    this.server.addLocalListener(listener, filter);
   }
 
-  public static class ServerChannelServer extends ChannelServer {
+  @Override
+  public void removeListener(ChannelListener listener, ListenerType... types) {
+    this.server.removeListener(listener, types);
+  }
 
-    protected ServerChannelServer(Channel manager) {
-      super(manager);
-    }
+  @Override
+  public void sendMessageSynchronized(ChannelMessage<?, ?> message) {
+    this.client.sendMessageSynchronized(message);
+  }
 
-    @Override
-    public void runSync(SyncRun syncRun) {
-      this.manager.runSync(syncRun);
-    }
+  @Override
+  public Host getHost() {
+    return this.self;
+  }
 
-    @Override
-    protected void handleHeartBeatMessage(ChannelHeartbeatMessage<?> msg) {
-      super.handleHeartBeatMessage(msg);
-      if (msg.getMessageType().equals(Heartbeat.PING)) {
-        ((ServerChannelClient) this.manager.client).sendPongMessage();
-      }
-    }
+  public ChannelServer getServer() {
+    return server;
+  }
 
-    @Override
-    protected void handleRemoteListenerMessage(ChannelListenerMessage<?> msg) {
-      super.handleRemoteListenerMessage(msg);
-      ((ServerChannelClient) this.manager.client).handleRemoteListenerMessage(msg);
+  public ChannelClient getClient() {
+    return client;
+  }
+
+  public void connectToProxy(ChannelListenerMessage<?> msg, Duration retryPeriod) {
+    this.client.connectToProxy(msg, retryPeriod);
+  }
+
+  public void onProxyConnected() {
+    Loggers.CHANNEL.info("Connected to proxy server");
+  }
+
+  public void onHostTimeOut(Host host) {
+    Loggers.CHANNEL.warning("Lost connection to '" + host + "'");
+    this.client.disconnectHost(host);
+  }
+
+  public void onHeartBeatMessage(ChannelHeartbeatMessage<?> msg) {
+    if (msg.getMessageType().equals(Heartbeat.PONG)) {
+      this.pingedHosts.remove(msg.getIdentifier());
+    } else if (msg.getMessageType().equals(Heartbeat.PING)) {
+      this.client.sendMessageSynchronized(msg.getIdentifier(), new ChannelHeartbeatMessage<>(this.self, Heartbeat.PONG));
     }
   }
 
-  public static class ServerChannelClient extends ChannelClient {
-
-    public ServerChannelClient(Channel manager) {
-      super(manager);
+  protected void startTimeOutThread() {
+    if (this.timeOut == null) {
+      return;
     }
 
-    public synchronized void handleRemoteListenerMessage(ChannelListenerMessage<?> msg) {
-      if (msg.getMessageType().equals(MessageType.Listener.IDENTIFIER_LISTENER)
-          || msg.getMessageType().equals(MessageType.Listener.MESSAGE_TYPE_LISTENER)) {
-        this.addRemoteListener(msg);
-      } else if (msg.getMessageType().equals(MessageType.Listener.REGISTER_SERVER)
-          && msg.getIdentifier().equals(this.manager.getProxy())) {
-        Loggers.CHANNEL.info("Receiving of listeners finished");
-        this.listenerLoaded = true;
-        for (ChannelMessage<?, ?> serverMsg : this.messageStash) {
-          this.manager.sendMessage(serverMsg);
-        }
-        this.messageStash.clear();
-      } else if (msg.getMessageType().equals(MessageType.Listener.UNREGISTER_SERVER)) {
-        Host host = msg.getIdentifier();
+    this.timeOutThread = new Thread(() -> {
+      while (true) {
+        ChannelHeartbeatMessage<Void> msg = new ChannelHeartbeatMessage<>(this.self, Heartbeat.PING);
 
-        if (host != null) {
-          this.listenerHostByMessageTypeByChannelType.forEach((k, v) -> v.remove(host));
-          Loggers.CHANNEL.info("Removed listener " + host);
+        for (Entry<Host, Socket> entry : Channel.this.client.getSocketByHost().entrySet()) {
+          Host host = entry.getKey();
+          Socket socket = entry.getValue();
+
+          if (!socket.isConnected()) {
+            Channel.this.onHostTimeOut(host);
+          } else {
+            Channel.this.client.sendMessageSynchronized(host, msg);
+            Channel.this.pingedHosts.add(host);
+          }
         }
 
-        this.disconnectHost(host);
+        try {
+          Thread.sleep(this.timeOut.toMillis());
+        } catch (InterruptedException ignored) {
+          break;
+        }
+
+        for (Host host : Channel.this.pingedHosts) {
+          Channel.this.onHostTimeOut(host);
+        }
+
+        Channel.this.pingedHosts.clear();
       }
-    }
-
-    public void addRemoteListener(ChannelListenerMessage<?> msg) {
-      Host senderHost = msg.getIdentifier();
-
-      if (senderHost.equals(this.manager.getSelf())) {
-        return;
-      }
-
-      if (msg.getMessageType().equals(MessageType.Listener.IDENTIFIER_LISTENER)) {
-        MessageIdentifierListener<?> identifierListener = (MessageIdentifierListener<?>) msg.getValue();
-
-        if (identifierListener.getChannelType().equals(ChannelType.LOGGING)) {
-          this.addLogListener(msg.getIdentifier());
-          return;
-        }
-        // prevent registration of server listener, which not belongs to this server
-        else if (identifierListener.getChannelType().equals(ChannelType.SERVER)
-            && !((MessageType.MessageIdentifierListener<?>) msg.getValue()).getIdentifier()
-            .equals(((Channel) this.manager).getServerName())) {
-          return;
-        }
-
-        this.listenerHostByIdentifierByChannelType.get(
-                identifierListener.getChannelType())
-            .computeIfAbsent(identifierListener.getIdentifier(),
-                k -> ConcurrentHashMap.newKeySet()).add(senderHost);
-      } else if (msg.getMessageType().equals(MessageType.Listener.MESSAGE_TYPE_LISTENER)) {
-        MessageTypeListener typeListener = (MessageTypeListener) msg.getValue();
-
-        if (typeListener.getChannelType().equals(ChannelType.LOGGING)) {
-          this.addLogListener(msg.getIdentifier());
-          return;
-        }
-
-        this.listenerHostByMessageTypeByChannelType.get(typeListener.getChannelType())
-            .computeIfAbsent(typeListener.getMessageType(),
-                k -> ConcurrentHashMap.newKeySet()).add(senderHost);
-      }
-
-      Loggers.CHANNEL.info("Added remote listener from '" + msg.getIdentifier() + "'");
-    }
-
-    protected void addLogListener(Host host) {
-      Logger logger = Logger.getLogger("");
-      try {
-        logger.addHandler(new SocketHandler(host.getHostname(), host.getPort()));
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-      Loggers.CHANNEL.info("Added remote log listener from '" + host + "'");
-    }
-
-    protected void sendPongMessage() {
-      this.sendMessageToProxy(new ChannelHeartbeatMessage(this.manager.getSelf(),
-          Heartbeat.PONG, ((Channel) this.manager).getServerName()));
-    }
+    });
+    this.timeOutThread.setDaemon(true);
+    this.timeOutThread.start();
+    Loggers.CHANNEL.info("Started channel time out ping");
   }
 }

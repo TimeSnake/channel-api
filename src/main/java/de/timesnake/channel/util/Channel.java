@@ -5,6 +5,7 @@
 package de.timesnake.channel.util;
 
 import de.timesnake.channel.core.Host;
+import de.timesnake.channel.core.ServerChannel;
 import de.timesnake.channel.util.listener.ChannelListener;
 import de.timesnake.channel.util.listener.ChannelMessageFilter;
 import de.timesnake.channel.util.listener.ListenerType;
@@ -13,7 +14,7 @@ import de.timesnake.channel.util.message.ChannelMessage;
 public interface Channel {
 
   static Channel getInstance() {
-    return de.timesnake.channel.core.Channel.getInstance();
+    return ServerChannel.getInstance();
   }
 
   void addListener(ChannelListener listener);

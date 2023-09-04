@@ -10,6 +10,7 @@ import de.timesnake.library.basic.util.Loggers;
 import de.timesnake.library.basic.util.Tuple;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -25,33 +26,51 @@ import java.util.stream.Collectors;
 
 public abstract class ChannelServer implements Runnable {
 
-  protected final ChannelBasis manager;
+  protected final Channel manager;
 
   protected ConcurrentHashMap<Tuple<ChannelType<?>, MessageType<?>>, ConcurrentHashMap<ChannelListener,
       Set<Tuple<ChannelMessageFilter<?>, Method>>>> listeners = new ConcurrentHashMap<>();
 
-  protected ChannelServer(ChannelBasis manager) {
+  protected ChannelServer(Channel manager) {
     this.manager = manager;
   }
 
   @Override
   public void run() {
-    try {
-      this.startServer();
-    } catch (Exception e) {
-      Loggers.CHANNEL.severe("Error while starting channel-server");
-    }
+    this.startServer();
   }
 
-  @SuppressWarnings("resource")
-  private void startServer() throws Exception {
-    ServerSocket serverSocket = new ServerSocket(this.manager.getSelf().getPort(), 100,
-        InetAddress.getByName(this.manager.getListenHostName()));
+  private void startServer() {
+    ServerSocket serverSocket;
+    try {
+      serverSocket = new ServerSocket(this.manager.getSelf().getPort(), 100,
+          InetAddress.getByName(this.manager.getListenHostName()));
+    } catch (IOException e) {
+      Loggers.CHANNEL.severe("Error while starting channel server");
+      e.printStackTrace();
+      return;
+    }
 
     while (true) {
-      final Socket activeSocket = serverSocket.accept();
-      Runnable runnable = () -> handleMessage(activeSocket);
-      new Thread(runnable).start();
+      final Socket activeSocket;
+      try {
+        activeSocket = serverSocket.accept();
+      } catch (IOException e) {
+        Loggers.CHANNEL.warning("Error while accepting message, restarting socket ...");
+        e.printStackTrace();
+
+        try {
+          serverSocket.close();
+        } catch (IOException ex) {
+          Loggers.CHANNEL.warning("Error while closing socket, continue with restart ...");
+          e.printStackTrace();
+        }
+
+        this.startServer();
+        return;
+      }
+
+      new Thread(() -> handleMessage(activeSocket)).start();
     }
   }
 
@@ -167,51 +186,45 @@ public abstract class ChannelServer implements Runnable {
 
     do {
       for (Method method : clazz.getDeclaredMethods()) {
+        if (!method.isAnnotationPresent(ChannelHandler.class)) {
+          continue;
+        }
 
-        if (method.isAnnotationPresent(ChannelHandler.class)) {
+        if (method.getParameters().length != 1) {
+          throw new InconsistentChannelListenerException("invalid parameter size");
+        }
 
-          if (method.getParameters().length != 1) {
-            throw new InconsistentChannelListenerException("invalid parameter size");
+        ChannelHandler annotation = method.getAnnotation(ChannelHandler.class);
+        ListenerType[] methodTypes = annotation.type();
+        for (ListenerType type : methodTypes) {
+
+          if (type.getMessageClass() != null && !type.getMessageClass().equals(method.getParameterTypes()[0])) {
+            throw new InconsistentChannelListenerException("invalid message type");
           }
 
-          ChannelHandler annotation = method.getAnnotation(ChannelHandler.class);
-          ListenerType[] methodTypes = annotation.type();
-          for (ListenerType type : methodTypes) {
+          Set<Tuple<ChannelMessageFilter<?>, Method>> listenerMethods =
+              this.listeners.computeIfAbsent(type.getTypeTuple(), k -> new ConcurrentHashMap<>())
+                  .computeIfAbsent(listener, k -> ConcurrentHashMap.newKeySet());
 
-            if (type.getMessageClass() != null
-                && !type.getMessageClass().equals(method.getParameterTypes()[0])) {
-              throw new InconsistentChannelListenerException("invalid message type");
-            }
-
-            Set<Tuple<ChannelMessageFilter<?>, Method>> listenerMethods =
-                this.listeners.computeIfAbsent(type.getTypeTuple(), k ->
-                    new ConcurrentHashMap<>()).computeIfAbsent(listener,
-                    k -> ConcurrentHashMap.newKeySet());
-
-            if (annotation.filtered() && filter != null) {
-              listenerMethods.add(new Tuple<>(filter, method));
-            } else {
-              listenerMethods.add(new Tuple<>(() -> null, method));
-            }
-
-            this.manager.sendListenerMessage(type, filter);
-
+          if (annotation.filtered() && filter != null) {
+            listenerMethods.add(new Tuple<>(filter, method));
+          } else {
+            listenerMethods.add(new Tuple<>(() -> null, method));
           }
+
+          Loggers.CHANNEL.info("Added listener '" + type.name().toLowerCase() + "' of class '" + clazz.getSimpleName() + "'");
+          this.manager.sendListenerMessage(type, filter);
         }
       }
 
       clazz = clazz.getSuperclass();
-
-
     } while (clazz != null && ChannelListener.class.isAssignableFrom(clazz));
   }
 
   public void removeListener(ChannelListener listener, ListenerType... types) {
-    Collection<ConcurrentHashMap<ChannelListener, ?>> listeners =
-        this.listeners.entrySet().stream().filter(t -> types.length == 0
-                || Arrays.stream(types)
-                .anyMatch(type -> t.getKey().equals(type.getTypeTuple())))
-            .map(Map.Entry::getValue).collect(Collectors.toList());
+    Collection<ConcurrentHashMap<ChannelListener, ?>> listeners = this.listeners.entrySet().stream()
+        .filter(t -> types.length == 0 || Arrays.stream(types).anyMatch(type -> t.getKey().equals(type.getTypeTuple())))
+        .map(Map.Entry::getValue).collect(Collectors.toList());
 
     for (ConcurrentHashMap<ChannelListener, ?> listenerMethods : listeners) {
       listenerMethods.remove(listener);
