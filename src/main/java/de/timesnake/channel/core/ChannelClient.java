@@ -40,8 +40,7 @@ public class ChannelClient {
    * @param msg        Listener message, which is sent
    * @return true if message is interesting for server, else false
    */
-  public static boolean isInterestingForServer(Host host, String serverName,
-                                               ChannelListenerMessage<?> msg) {
+  public static boolean isInterestingForServer(Host host, String serverName, ChannelListenerMessage<?> msg) {
     if (msg.getMessageType().equals(MessageType.Listener.IDENTIFIER_LISTENER)) {
       if (((MessageType.MessageIdentifierListener<?>) msg.getValue()).getChannelType().equals(ChannelType.SERVER)) {
         if (!serverName.equals(((MessageType.MessageIdentifierListener<?>) msg.getValue()).getIdentifier())) {
@@ -109,6 +108,60 @@ public class ChannelClient {
         this.connectToProxy(msg, retryPeriod);
       }).start();
     }
+  }
+
+  public synchronized void handleRemoteListenerMessage(ChannelListenerMessage<?> msg) {
+    if (msg.getMessageType().equals(MessageType.Listener.IDENTIFIER_LISTENER)
+        || msg.getMessageType().equals(MessageType.Listener.MESSAGE_TYPE_LISTENER)) {
+      this.addRemoteListener(msg);
+    } else if (msg.getMessageType().equals(MessageType.Listener.REGISTER_SERVER)
+        && msg.getIdentifier().equals(this.manager.getProxy())) {
+      Loggers.CHANNEL.info("Receiving of listeners finished");
+      this.listenerLoaded = true;
+      this.sendStashedMessages();
+    } else if (msg.getMessageType().equals(MessageType.Listener.UNREGISTER_SERVER)) {
+      Host host = msg.getIdentifier();
+
+      this.listenerHostByMessageTypeByChannelType.forEach((k, v) -> v.remove(host));
+      Loggers.CHANNEL.info("Removed listener " + host);
+
+      this.disconnectHost(host);
+    }
+  }
+
+  public void addRemoteListener(ChannelListenerMessage<?> msg) {
+    Host senderHost = msg.getIdentifier();
+
+    if (senderHost.equals(this.manager.getSelf())) {
+      return;
+    }
+
+    if (msg.getMessageType().equals(MessageType.Listener.IDENTIFIER_LISTENER)) {
+      MessageType.MessageIdentifierListener<?> identifierListener = (MessageType.MessageIdentifierListener<?>) msg.getValue();
+
+      if (identifierListener.getChannelType().equals(ChannelType.LOGGING)) {
+        this.addLogListener(msg.getIdentifier());
+        return;
+      }
+
+      this.listenerHostByIdentifierByChannelType.get(identifierListener.getChannelType())
+          .computeIfAbsent(identifierListener.getIdentifier(), k -> ConcurrentHashMap.newKeySet())
+          .add(senderHost);
+
+    } else if (msg.getMessageType().equals(MessageType.Listener.MESSAGE_TYPE_LISTENER)) {
+      MessageType.MessageTypeListener typeListener = (MessageType.MessageTypeListener) msg.getValue();
+
+      if (typeListener.getChannelType().equals(ChannelType.LOGGING)) {
+        this.addLogListener(msg.getIdentifier());
+        return;
+      }
+
+      this.listenerHostByMessageTypeByChannelType.get(typeListener.getChannelType())
+          .computeIfAbsent(typeListener.getMessageType(), k -> ConcurrentHashMap.newKeySet())
+          .add(senderHost);
+    }
+
+    Loggers.CHANNEL.info("Added remote listener from '" + msg.getIdentifier() + "'");
   }
 
   public void sendListenerMessage(ListenerType type, ChannelMessageFilter<?> filter) {
@@ -202,6 +255,7 @@ public class ChannelClient {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+    Loggers.CHANNEL.info("Added remote log listener from '" + host + "'");
   }
 
   public void disconnectHost(Host host) {
