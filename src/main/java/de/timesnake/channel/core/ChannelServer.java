@@ -79,8 +79,6 @@ public abstract class ChannelServer implements Runnable {
       BufferedReader socketReader;
       socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-      Host sender = new Host(socket.getInetAddress().getHostName(), socket.getPort());
-
       String inMsg;
       while ((inMsg = socketReader.readLine()) != null) {
         Loggers.CHANNEL.info("Message received: " + inMsg);
@@ -173,7 +171,7 @@ public abstract class ChannelServer implements Runnable {
   }
 
   protected void handleRemoteListenerMessage(ChannelListenerMessage<?> msg) {
-
+    this.manager.getClient().handleRemoteListenerMessage(msg);
   }
 
   public void addLocalListener(ChannelListener listener) {
