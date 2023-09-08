@@ -30,18 +30,15 @@ public abstract class MessageType<Value> {
   public abstract static class Server<Value> extends MessageType<Value> {
 
     public static final MessageType<Status.Server> STATUS = new MessageTypeStatus<>("status");
-    public static final MessageType<Integer> ONLINE_PLAYERS = new MessageTypeInteger(
-        "online_players");
-    public static final MessageType<Integer> MAX_PLAYERS = new MessageTypeInteger(
-        "max_players");
+    public static final MessageType<Integer> ONLINE_PLAYERS = new MessageTypeInteger("online_players");
+    public static final MessageType<Integer> MAX_PLAYERS = new MessageTypeInteger("max_players");
     public static final MessageType<String> COMMAND = new MessageTypeString("command");
     public static final MessageType<Void> PERMISSION = new MessageTypeVoid("permission");
     public static final MessageType<String> GAME_MAP = new MessageTypeString("game_map");
     public static final MessageType<String> GAME_WORLD = new MessageTypeString("game_world");
     public static final MessageType<String> PASSWORD = new MessageTypeString("password");
     public static final MessageType<Boolean> OLD_PVP = new MessageTypeBoolean("old_pvp");
-    public static final MessageType<ChannelServerMessage.State> STATE = new MessageType<>(
-        "state") {
+    public static final MessageType<ChannelServerMessage.State> STATE = new MessageType<>("state") {
       @Override
       public String valueToString(ChannelServerMessage.State state) {
         return state.name();
@@ -59,14 +56,10 @@ public abstract class MessageType<Value> {
     public static final MessageType<Boolean> DISCORD = new MessageTypeBoolean("discord");
     public static final MessageType<String> USER_STATS = new MessageTypeString("user_stats");
     public static final MessageType<String> LOAD_WORLD = new MessageTypeString("load_world");
-    public static final MessageType<String> UNLOAD_WORLD = new MessageTypeString(
-        "unload_world");
-    public static final MessageType<String> LOADED_WORLD = new MessageTypeString(
-        "loaded_world");
-    public static final MessageType<String> UNLOADED_WORLD = new MessageTypeString(
-        "unloaded_world");
-    public static final MessageType<Void> UNLOADED_ALL_WORLDS = new MessageTypeVoid(
-        "unloaded_all_worlds");
+    public static final MessageType<String> UNLOAD_WORLD = new MessageTypeString("unload_world");
+    public static final MessageType<String> LOADED_WORLD = new MessageTypeString("loaded_world");
+    public static final MessageType<String> UNLOADED_WORLD = new MessageTypeString("unloaded_world");
+    public static final MessageType<Void> UNLOADED_ALL_WORLDS = new MessageTypeVoid("unloaded_all_worlds");
 
     public static final Set<MessageType<?>> TYPES = Set.of(STATUS, ONLINE_PLAYERS, MAX_PLAYERS,
         COMMAND, PERMISSION, GAME_MAP, GAME_WORLD, PASSWORD, OLD_PVP, STATE, CUSTOM,
@@ -95,23 +88,20 @@ public abstract class MessageType<Value> {
 
     public static final MessageType<Status.User> STATUS = new MessageTypeStatus<>("status");
     public static final MessageType<Boolean> SERVICE = new MessageTypeBoolean("service");
-    public static final MessageType<Integer> SWITCH_PORT = new MessageTypeInteger(
-        "switch_port");
+    public static final MessageType<Integer> SWITCH_PORT = new MessageTypeInteger("switch_port");
     public static final MessageType<String> SWITCH_NAME = new MessageTypeString("switch_name");
     public static final MessageType<Void> PERMISSION = new MessageTypeVoid("permission");
     public static final MessageType<Void> PUNISH = new MessageTypeVoid("punish");
     public static final MessageType<Void> ALIAS = new MessageTypeVoid("alias");
     public static final MessageType<String> TASK = new MessageTypeString("task");
     public static final MessageType<String> COMMAND = new MessageTypeString("command");
-    public static final MessageType<String> PROXY_COMMAND = new MessageTypeString(
-        "proxy_command");
+    public static final MessageType<String> PROXY_COMMAND = new MessageTypeString("proxy_command");
     public static final MessageType<String> PERM_GROUP = new MessageTypeString("perm_group");
     public static final MessageType<Void> DISPLAY_GROUP = new MessageTypeVoid("display_group");
     public static final MessageType<String> TEAM = new MessageTypeString("team");
     public static final MessageType<String> STATISTICS = new MessageTypeString("statistics");
     public static final MessageType<String> CUSTOM = new MessageTypeString("custom");
-    public static final MessageType<ChannelUserMessage.Sound> SOUND = new MessageType<>(
-        "sound") {
+    public static final MessageType<ChannelUserMessage.Sound> SOUND = new MessageType<>("sound") {
       @Override
       public String valueToString(ChannelUserMessage.Sound s) {
         return s.name();
@@ -122,14 +112,11 @@ public abstract class MessageType<Value> {
         return ChannelUserMessage.Sound.valueOf(value);
       }
     };
-    public static final MessageType<Integer> STORY_START = new MessageTypeInteger(
-        "story_start");
-    public static final MessageType<Integer> STORY_END = new MessageTypeInteger("story_end");
-    public static final MessageType<String> STORY_PLAY_AUDIO = new MessageTypeString(
-        "story_play_audio");
-    public static final MessageType<String> STORY_END_AUDIO = new MessageTypeString(
-        "story_end_audio");
-
+    public static final MessageType<Tuple<String, String>> STORY_START = new MessageTypeTuple<>("story_start",
+        new MessageTypeString("book_id"), new MessageTypeString("chapter_id"));
+    public static final MessageType<Void> STORY_END = new MessageTypeVoid("story_end");
+    public static final MessageType<String> STORY_PLAY_AUDIO = new MessageTypeString("story_play_audio");
+    public static final MessageType<String> STORY_END_AUDIO = new MessageTypeString("story_end_audio");
     public static final Set<MessageType<?>> TYPES = Set.of(STATUS, SERVICE, SWITCH_PORT,
         SWITCH_NAME, PERMISSION, PUNISH, ALIAS, TASK, COMMAND, PROXY_COMMAND,
         PERM_GROUP, DISPLAY_GROUP, TEAM, STATISTICS, CUSTOM, SOUND, STORY_START, STORY_END,
@@ -196,8 +183,7 @@ public abstract class MessageType<Value> {
       }
     };
 
-    public static final MessageType<MessageTypeListener> MESSAGE_TYPE_LISTENER = new MessageType<>(
-        "message_type_listener") {
+    public static final MessageType<MessageTypeListener> MESSAGE_TYPE_LISTENER = new MessageType<>("message_type_listener") {
       @Override
       public String valueToString(MessageTypeListener messageTypeListener) {
         return messageTypeListener.toString();
@@ -209,10 +195,8 @@ public abstract class MessageType<Value> {
       }
     };
 
-    public static final MessageType<String> REGISTER_SERVER = new MessageTypeString(
-        "register_server");
-    public static final MessageType<String> UNREGISTER_SERVER = new MessageTypeString(
-        "unregister_server");
+    public static final MessageType<String> REGISTER_SERVER = new MessageTypeString("register_server");
+    public static final MessageType<String> UNREGISTER_SERVER = new MessageTypeString("unregister_server");
 
     public static final MessageType<Void> REGISTER_HOST = new MessageTypeVoid("register_host");
     public static final MessageType<Void> UNREGISTER_HOST = new MessageTypeVoid("unregister_host");
@@ -324,15 +308,11 @@ public abstract class MessageType<Value> {
     };
 
     public static final MessageType<Void> DELETE_UNUSED = new MessageTypeVoid("delete_unused");
-    public static final MessageType<Boolean> HIDE_CHANNELS = new MessageTypeBoolean(
-        "hide_channels");
-    public static final MessageType<String> MUTE_CHANNEL = new MessageTypeString(
-        "mute_channel");
-    public static final MessageType<UUID> DISCONNECT_MEMBER = new MessageTypeUUID(
-        "disconnect_member");
+    public static final MessageType<Boolean> HIDE_CHANNELS = new MessageTypeBoolean("hide_channels");
+    public static final MessageType<String> MUTE_CHANNEL = new MessageTypeString("mute_channel");
+    public static final MessageType<UUID> DISCONNECT_MEMBER = new MessageTypeUUID("disconnect_member");
 
-    public static final MessageType<ChannelDiscordMessage.Allocation> MOVE_MEMBERS = new MessageType<>(
-        "move_members") {
+    public static final MessageType<ChannelDiscordMessage.Allocation> MOVE_MEMBERS = new MessageType<>("move_members") {
 
       @Override
       public String valueToString(ChannelDiscordMessage.Allocation allocation) {
