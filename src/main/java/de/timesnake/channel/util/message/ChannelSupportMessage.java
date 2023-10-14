@@ -7,11 +7,9 @@ package de.timesnake.channel.util.message;
 import de.timesnake.channel.core.ChannelType;
 import org.jetbrains.annotations.NotNull;
 
-public class ChannelSupportMessage<Value> extends ChannelMessage<String, Value> {
+import java.io.Serializable;
 
-  public ChannelSupportMessage(String... args) {
-    super(args);
-  }
+public class ChannelSupportMessage<Value extends Serializable> extends ChannelMessage<String, Value> {
 
   public ChannelSupportMessage(@NotNull String name, @NotNull MessageType<Value> type, Value value) {
     super(ChannelType.SUPPORT, name, type, value);

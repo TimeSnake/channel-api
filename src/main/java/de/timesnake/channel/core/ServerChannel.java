@@ -8,6 +8,7 @@ import de.timesnake.channel.util.ChannelConfig;
 import de.timesnake.channel.util.message.ChannelListenerMessage;
 import de.timesnake.channel.util.message.MessageType;
 import de.timesnake.library.basic.util.Loggers;
+import de.timesnake.library.basic.util.Tuple;
 import org.jetbrains.annotations.NotNull;
 
 public abstract class ServerChannel extends Channel {
@@ -71,10 +72,10 @@ public abstract class ServerChannel extends Channel {
     @Override
     public void addRemoteListener(ChannelListenerMessage<?> msg) {
       if (msg.getMessageType().equals(MessageType.Listener.IDENTIFIER_LISTENER)) {
-        MessageType.MessageIdentifierListener<?> identifierListener = (MessageType.MessageIdentifierListener<?>) msg.getValue();
+        Tuple<ChannelType<?>, ?> identifierListener = (Tuple<ChannelType<?>, ?>) msg.getValue();
 
-        if (identifierListener.getChannelType().equals(ChannelType.SERVER)
-            && !((MessageType.MessageIdentifierListener<?>) msg.getValue()).getIdentifier().equals(((ServerChannel) this.manager).getServerName())) {
+        if (identifierListener.getA().equals(ChannelType.SERVER)
+            && !identifierListener.getB().equals(((ServerChannel) this.manager).getServerName())) {
           return;
         }
       }

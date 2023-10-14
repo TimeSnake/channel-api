@@ -7,11 +7,13 @@ package de.timesnake.channel.core;
 import de.timesnake.channel.util.listener.ChannelListener;
 import de.timesnake.channel.util.listener.ChannelMessageFilter;
 import de.timesnake.channel.util.listener.ListenerType;
+import de.timesnake.channel.util.listener.ResultMessage;
 import de.timesnake.channel.util.message.ChannelHeartbeatMessage;
 import de.timesnake.channel.util.message.ChannelListenerMessage;
 import de.timesnake.channel.util.message.ChannelMessage;
 import de.timesnake.channel.util.message.MessageType.Heartbeat;
 import de.timesnake.channel.util.message.MessageType.Listener;
+import de.timesnake.channel.util.message.VoidMessage;
 import de.timesnake.library.basic.util.Loggers;
 import org.jetbrains.annotations.NotNull;
 
@@ -20,6 +22,7 @@ import java.time.Duration;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.Future;
 
 public abstract class Channel implements de.timesnake.channel.util.Channel {
 
@@ -100,7 +103,7 @@ public abstract class Channel implements de.timesnake.channel.util.Channel {
   }
 
   public void stop() {
-    final ChannelListenerMessage<Void> message = new ChannelListenerMessage<>(this.getSelf(), Listener.UNREGISTER_HOST);
+    final ChannelListenerMessage<VoidMessage> message = new ChannelListenerMessage<>(this.getSelf(), Listener.UNREGISTER_HOST);
     this.client.sendMessageToProxy(message);
     if (this.serverThread.isAlive()) {
       this.serverThread.interrupt();
@@ -131,12 +134,17 @@ public abstract class Channel implements de.timesnake.channel.util.Channel {
     return proxyName;
   }
 
-  public void sendMessage(ChannelMessage<?, ?> message) {
-    this.client.sendMessage(message);
+  public Future<ResultMessage> sendMessage(ChannelMessage<?, ?> message) {
+    return this.client.sendMessage(message);
   }
 
-  public void sendMessageToProxy(ChannelMessage<?, ?> message) {
-    this.client.sendMessageToProxy(message);
+  @Override
+  public ResultMessage sendMessageSynchronized(ChannelMessage<?, ?> message) {
+    return this.client.sendMessageSynchronized(message);
+  }
+
+  public Future<ResultMessage> sendMessageToProxy(ChannelMessage<?, ?> message) {
+    return this.client.sendMessageToProxy(message);
   }
 
   protected void sendListenerMessage(ListenerType type, ChannelMessageFilter<?> filter) {
@@ -156,11 +164,6 @@ public abstract class Channel implements de.timesnake.channel.util.Channel {
   @Override
   public void removeListener(ChannelListener listener, ListenerType... types) {
     this.server.removeListener(listener, types);
-  }
-
-  @Override
-  public void sendMessageSynchronized(ChannelMessage<?, ?> message) {
-    this.client.sendMessageSynchronized(message);
   }
 
   @Override
@@ -193,7 +196,7 @@ public abstract class Channel implements de.timesnake.channel.util.Channel {
     if (msg.getMessageType().equals(Heartbeat.PONG)) {
       this.pingedHosts.remove(msg.getIdentifier());
     } else if (msg.getMessageType().equals(Heartbeat.PING)) {
-      this.client.sendMessageSynchronized(msg.getIdentifier(), new ChannelHeartbeatMessage<>(this.self, Heartbeat.PONG));
+      this.client.sendMessageSynchronizedToHost(msg.getIdentifier(), new ChannelHeartbeatMessage<>(this.self, Heartbeat.PONG));
     }
   }
 
@@ -204,16 +207,16 @@ public abstract class Channel implements de.timesnake.channel.util.Channel {
 
     this.timeOutThread = new Thread(() -> {
       while (true) {
-        ChannelHeartbeatMessage<Void> msg = new ChannelHeartbeatMessage<>(this.self, Heartbeat.PING);
+        ChannelHeartbeatMessage<VoidMessage> msg = new ChannelHeartbeatMessage<>(this.self, Heartbeat.PING);
 
-        for (Entry<Host, Socket> entry : Channel.this.client.getSocketByHost().entrySet()) {
+        for (Entry<Host, ChannelClient.ChannelConnection> entry : Channel.this.client.getChannelByHost().entrySet()) {
           Host host = entry.getKey();
-          Socket socket = entry.getValue();
+          Socket socket = entry.getValue().getSocket();
 
           if (!socket.isConnected()) {
             Channel.this.onHostTimeOut(host);
           } else {
-            Channel.this.client.sendMessageSynchronized(host, msg);
+            Channel.this.client.sendMessageSynchronizedToHost(host, msg);
             Channel.this.pingedHosts.add(host);
           }
         }
