@@ -7,13 +7,10 @@ package de.timesnake.channel.util.message;
 import de.timesnake.channel.core.ChannelType;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.Serializable;
 import java.util.UUID;
 
-public class ChannelUserMessage<Value> extends ChannelMessage<UUID, Value> {
-
-  public ChannelUserMessage(String... args) {
-    super(args);
-  }
+public class ChannelUserMessage<Value extends Serializable> extends ChannelMessage<UUID, Value> {
 
   public ChannelUserMessage(@NotNull UUID uuid, @NotNull MessageType<Value> type, Value value) {
     super(ChannelType.USER, uuid, type, value);

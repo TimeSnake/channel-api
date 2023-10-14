@@ -9,7 +9,10 @@ import de.timesnake.channel.core.ServerChannel;
 import de.timesnake.channel.util.listener.ChannelListener;
 import de.timesnake.channel.util.listener.ChannelMessageFilter;
 import de.timesnake.channel.util.listener.ListenerType;
+import de.timesnake.channel.util.listener.ResultMessage;
 import de.timesnake.channel.util.message.ChannelMessage;
+
+import java.util.concurrent.Future;
 
 public interface Channel {
 
@@ -23,9 +26,9 @@ public interface Channel {
 
   void removeListener(ChannelListener listener, ListenerType... types);
 
-  void sendMessage(ChannelMessage<?, ?> message);
+  Future<ResultMessage> sendMessage(ChannelMessage<?, ?> message);
 
-  void sendMessageSynchronized(ChannelMessage<?, ?> message);
+  ResultMessage sendMessageSynchronized(ChannelMessage<?, ?> message);
 
   Host getHost();
 

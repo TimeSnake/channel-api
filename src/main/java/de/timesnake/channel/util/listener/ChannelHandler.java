@@ -17,4 +17,6 @@ public @interface ChannelHandler {
 
   boolean filtered() default false;
 
+  boolean async() default false;
+
 }

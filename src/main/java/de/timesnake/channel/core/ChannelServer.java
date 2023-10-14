@@ -5,13 +5,14 @@
 package de.timesnake.channel.core;
 
 import de.timesnake.channel.util.listener.*;
-import de.timesnake.channel.util.message.*;
+import de.timesnake.channel.util.message.ChannelHeartbeatMessage;
+import de.timesnake.channel.util.message.ChannelListenerMessage;
+import de.timesnake.channel.util.message.ChannelMessage;
+import de.timesnake.channel.util.message.MessageType;
 import de.timesnake.library.basic.util.Loggers;
 import de.timesnake.library.basic.util.Tuple;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
@@ -47,7 +48,6 @@ public abstract class ChannelServer implements Runnable {
           InetAddress.getByName(this.manager.getListenHostName()));
     } catch (IOException e) {
       Loggers.CHANNEL.severe("Error while starting channel server");
-      e.printStackTrace();
       return;
     }
 
@@ -57,13 +57,10 @@ public abstract class ChannelServer implements Runnable {
         activeSocket = serverSocket.accept();
       } catch (IOException e) {
         Loggers.CHANNEL.warning("Error while accepting message, restarting socket ...");
-        e.printStackTrace();
-
         try {
           serverSocket.close();
         } catch (IOException ex) {
           Loggers.CHANNEL.warning("Error while closing socket, continue with restart ...");
-          e.printStackTrace();
         }
 
         this.startServer();
@@ -75,69 +72,68 @@ public abstract class ChannelServer implements Runnable {
   }
 
   private void handleMessage(Socket socket) {
+    ObjectInputStream socketReader;
     try {
-      BufferedReader socketReader;
-      socketReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+      InputStream inputStream = socket.getInputStream();
+      socketReader = new ObjectInputStream(inputStream);
 
-      String inMsg;
-      while ((inMsg = socketReader.readLine()) != null) {
-        Loggers.CHANNEL.info("Message received: " + inMsg);
-        String[] args = inMsg.split(ChannelMessage.DIVIDER, 4);
+      while (true) {
+        ChannelMessage<?, ?> msg;
+        try {
+          msg = (ChannelMessage<?, ?>) socketReader.readObject();
+        } catch (StreamCorruptedException e) {
+          Loggers.CHANNEL.warning("Exception while reading message: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+          continue;
+        } catch (OptionalDataException e) {
+          Loggers.CHANNEL.warning("Exception while reading message: " + e.getClass().getSimpleName() + ": object read failure: " + e.eof);
+          continue;
+        }
 
-        ChannelType<?> type = ChannelType.valueOf(args[0]);
-        if (ChannelType.LISTENER.equals(type)) {
-          ChannelListenerMessage<?> msg = new ChannelListenerMessage<>(args);
+        Loggers.CHANNEL.info("Message received: " + msg);
+
+        if (msg == null) {
+          continue;
+        }
+
+        if (ChannelType.LISTENER.equals(msg.getChannelType())) {
           if (msg.getMessageType().equals(MessageType.Listener.CLOSE_SOCKET)) {
-            socketReader.close();
             socket.close();
+            return;
           }
         }
-        this.handleMessage(args);
 
+        this.handleMessage(msg);
       }
+    } catch (EOFException ignored) {
+
     } catch (Exception e) {
-      e.printStackTrace();
+      Loggers.CHANNEL.warning("Exception while handling message: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+    }
+
+    try {
+      socket.close();
+    } catch (IOException ex) {
+      Loggers.CHANNEL.warning("Exception while closing socket: " + ex.getMessage());
     }
   }
 
-  public void handleMessage(String[] args) {
-    ChannelType<?> type = ChannelType.valueOf(args[0]);
+  public void handleMessage(ChannelMessage<?, ?> msg) {
+    ChannelType<?> type = msg.getChannelType();
 
     if (ChannelType.HEARTBEAT.equals(type)) {
-      this.handleHeartBeatMessage(new ChannelHeartbeatMessage<>(args));
+      this.handleHeartBeatMessage((ChannelHeartbeatMessage<?>) msg);
       return;
     }
 
     if (ChannelType.LISTENER.equals(type)) {
-      ChannelListenerMessage<?> msg = new ChannelListenerMessage<>(args);
-      this.handleRemoteListenerMessage(msg);
+      this.handleRemoteListenerMessage((ChannelListenerMessage<?>) msg);
       return;
     }
 
-    this.runSync(() -> {
-      ChannelMessage<?, ?> msg = null;
-
-      if (ChannelType.SERVER.equals(type)) {
-        msg = new ChannelServerMessage<>(args);
-      } else if (ChannelType.USER.equals(type)) {
-        msg = new ChannelUserMessage<>(args);
-      } else if (ChannelType.GROUP.equals(type)) {
-        msg = new ChannelGroupMessage<>(args);
-      } else if (ChannelType.SUPPORT.equals(type)) {
-        msg = new ChannelSupportMessage<>(args);
-      } else if (ChannelType.DISCORD.equals(type)) {
-        msg = new ChannelDiscordMessage<>(args);
-      } else {
-        Loggers.CHANNEL.warning("Error while reading channel type: '" + args[0] + "'");
-      }
-
-      if (msg != null) {
-        this.handleMessage(msg);
-      }
-    });
+    this.invokeLocalListeners(msg);
   }
 
-  public void handleMessage(ChannelMessage<?, ?> msg) {
+  public void invokeLocalListeners(ChannelMessage<?, ?> msg) {
     Set<Map.Entry<ChannelListener, Set<Tuple<ChannelMessageFilter<?>, Method>>>> set =
         this.listeners.getOrDefault(new Tuple<>(msg.getChannelType(), msg.getMessageType()),
             new ConcurrentHashMap<>()).entrySet();
@@ -154,11 +150,22 @@ public abstract class ChannelServer implements Runnable {
 
         if (filter == null || filter.getIdentifierFilter() == null
             || filter.getIdentifierFilter().contains(msg.getIdentifier())) {
-          try {
-            method.invoke(listener, msg);
-          } catch (IllegalAccessException | InvocationTargetException e) {
-            e.printStackTrace();
+          if (method.getAnnotation(ChannelHandler.class).async()) {
+            try {
+              method.invoke(listener, msg);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+              Loggers.CHANNEL.warning("Unable to invoke listener of '" + method.getClass().getName() + "': " + e.getMessage());
+            }
+          } else {
+            this.runSync(() -> {
+              try {
+                method.invoke(listener, msg);
+              } catch (IllegalAccessException | InvocationTargetException e) {
+                Loggers.CHANNEL.warning("Unable to invoke listener of '" + method.getClass().getName() + "': " + e.getMessage());
+              }
+            });
           }
+
         }
       }
     }

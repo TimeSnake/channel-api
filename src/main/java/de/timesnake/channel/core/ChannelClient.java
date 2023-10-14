@@ -4,25 +4,26 @@
 
 package de.timesnake.channel.core;
 
-import de.timesnake.channel.util.listener.ChannelMessageFilter;
-import de.timesnake.channel.util.listener.InconsistentChannelListenerException;
-import de.timesnake.channel.util.listener.ListenerType;
+import de.timesnake.channel.util.listener.*;
 import de.timesnake.channel.util.message.ChannelListenerMessage;
 import de.timesnake.channel.util.message.ChannelMessage;
 import de.timesnake.channel.util.message.MessageType;
 import de.timesnake.channel.util.message.MessageType.Listener;
 import de.timesnake.library.basic.util.Loggers;
+import de.timesnake.library.basic.util.Tuple;
 
 import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.net.ConnectException;
 import java.net.Socket;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 import java.util.logging.SocketHandler;
 
@@ -42,8 +43,8 @@ public class ChannelClient {
    */
   public static boolean isInterestingForServer(Host host, String serverName, ChannelListenerMessage<?> msg) {
     if (msg.getMessageType().equals(MessageType.Listener.IDENTIFIER_LISTENER)) {
-      if (((MessageType.MessageIdentifierListener<?>) msg.getValue()).getChannelType().equals(ChannelType.SERVER)) {
-        if (!serverName.equals(((MessageType.MessageIdentifierListener<?>) msg.getValue()).getIdentifier())) {
+      if (((Tuple<ChannelType<?>, ?>) msg.getValue()).getA().equals(ChannelType.SERVER)) {
+        if (!serverName.equals(((Tuple<ChannelType<?>, ?>) msg.getValue()).getB())) {
           return false;
         }
       }
@@ -66,7 +67,7 @@ public class ChannelClient {
       listenerHostByMessageTypeByChannelType = new ConcurrentHashMap<>();
 
 
-  protected ConcurrentHashMap<Host, Socket> socketByHost = new ConcurrentHashMap<>();
+  protected ConcurrentHashMap<Host, ChannelConnection> channelByHost = new ConcurrentHashMap<>();
   protected Set<Socket> loggingSockets = ConcurrentHashMap.newKeySet();
 
 
@@ -75,6 +76,9 @@ public class ChannelClient {
 
   protected Set<ChannelListenerMessage<?>> listenerMessageStash = ConcurrentHashMap.newKeySet();
   protected Set<ChannelMessage<?, ?>> messageStash = ConcurrentHashMap.newKeySet();
+
+  private final ExecutorService executorService = new ThreadPoolExecutor(5, 100, 5L, TimeUnit.MILLISECONDS,
+      new LinkedBlockingQueue<>());
 
 
   public ChannelClient(Channel manager) {
@@ -90,15 +94,15 @@ public class ChannelClient {
   }
 
   public void connectToProxy(ChannelListenerMessage<?> msg, Duration retryPeriod) {
-    boolean successful = this.sendMessageSynchronized(this.manager.getProxy(), msg);
+    ResultMessage resultMessage = this.sendMessageSynchronizedToHost(this.manager.getProxy(), msg);
 
-    if (successful) {
+    if (resultMessage.isSuccessful()) {
       this.connectedToProxy = true;
       this.sendStashedListenerMessages();
       this.manager.onProxyConnected();
     } else {
       Loggers.CHANNEL.warning("Failed to connect to proxy, retrying ...");
-      new Thread(() -> {
+      this.executorService.execute(() -> {
         try {
           Thread.sleep(retryPeriod.toMillis());
         } catch (InterruptedException e) {
@@ -106,7 +110,7 @@ public class ChannelClient {
         }
 
         this.connectToProxy(msg, retryPeriod);
-      }).start();
+      });
     }
   }
 
@@ -137,27 +141,27 @@ public class ChannelClient {
     }
 
     if (msg.getMessageType().equals(MessageType.Listener.IDENTIFIER_LISTENER)) {
-      MessageType.MessageIdentifierListener<?> identifierListener = (MessageType.MessageIdentifierListener<?>) msg.getValue();
+      Tuple<ChannelType<?>, ?> identifierListener = (Tuple<ChannelType<?>, ?>) msg.getValue();
 
-      if (identifierListener.getChannelType().equals(ChannelType.LOGGING)) {
+      if (identifierListener.getA().equals(ChannelType.LOGGING)) {
         this.addLogListener(msg.getIdentifier());
         return;
       }
 
-      this.listenerHostByIdentifierByChannelType.get(identifierListener.getChannelType())
-          .computeIfAbsent(identifierListener.getIdentifier(), k -> ConcurrentHashMap.newKeySet())
+      this.listenerHostByIdentifierByChannelType.get(identifierListener.getA())
+          .computeIfAbsent(identifierListener.getB(), k -> ConcurrentHashMap.newKeySet())
           .add(senderHost);
 
     } else if (msg.getMessageType().equals(MessageType.Listener.MESSAGE_TYPE_LISTENER)) {
-      MessageType.MessageTypeListener typeListener = (MessageType.MessageTypeListener) msg.getValue();
+      Tuple<ChannelType<?>, MessageType<?>> typeListener = (Tuple<ChannelType<?>, MessageType<?>>) msg.getValue();
 
-      if (typeListener.getChannelType().equals(ChannelType.LOGGING)) {
+      if (typeListener.getA().equals(ChannelType.LOGGING)) {
         this.addLogListener(msg.getIdentifier());
         return;
       }
 
-      this.listenerHostByMessageTypeByChannelType.get(typeListener.getChannelType())
-          .computeIfAbsent(typeListener.getMessageType(), k -> ConcurrentHashMap.newKeySet())
+      this.listenerHostByMessageTypeByChannelType.get(typeListener.getA())
+          .computeIfAbsent(typeListener.getB(), k -> ConcurrentHashMap.newKeySet())
           .add(senderHost);
     }
 
@@ -183,7 +187,7 @@ public class ChannelClient {
           this.sentLoggingListeners.add(name);
 
           this.sendListenerMessage(new ChannelListenerMessage<>(this.manager.getSelf(), Listener.IDENTIFIER_LISTENER,
-              new MessageType.MessageIdentifierListener<>(ChannelType.LOGGING, name)));
+              new Tuple<>(ChannelType.LOGGING, name)));
         }
       }
     } else {
@@ -205,13 +209,13 @@ public class ChannelClient {
 
           Loggers.CHANNEL.info("Sending '" + type.getChannelType().getName() + " " + messageType + "' message type listener message");
           this.sendListenerMessage(new ChannelListenerMessage<>(this.manager.getSelf(), MessageType.Listener.MESSAGE_TYPE_LISTENER,
-              new MessageType.MessageTypeListener(type.getChannelType(), messageType)));
+              new Tuple<>(type.getChannelType(), messageType)));
         }
       }
     }
   }
 
-  protected <Identifier> void sendIdentifierListener(ChannelType<Identifier> channelType, Collection<?> ids) {
+  protected <Identifier extends Serializable> void sendIdentifierListener(ChannelType<Identifier> channelType, Collection<?> ids) {
     Collection<Identifier> identifiers;
 
     try {
@@ -233,7 +237,7 @@ public class ChannelClient {
 
       Loggers.CHANNEL.info("Sending '" + channelType.getName() + " " + identifier + "' identifier listener message");
       this.sendListenerMessage(new ChannelListenerMessage<>(this.manager.getSelf(), MessageType.Listener.IDENTIFIER_LISTENER,
-          new MessageType.MessageIdentifierListener<>(channelType, identifier)));
+          new Tuple<>(channelType, identifier)));
     }
   }
 
@@ -255,16 +259,18 @@ public class ChannelClient {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    Loggers.CHANNEL.info("Added remote log listener from '" + host + "'");
+    Loggers.CHANNEL.info("Added remote log listener from '" + host.getName() + "'");
   }
 
   public void disconnectHost(Host host) {
     try {
-      Socket socket = this.socketByHost.remove(host);
-      if (socket != null) {
-        socket.close();
+      ChannelConnection channelConnection = this.channelByHost.remove(host);
+      if (channelConnection != null) {
+        if (channelConnection.getSocket() != null) {
+          channelConnection.getSocket().close();
+        }
       }
-      Loggers.CHANNEL.info("Closed socket to " + host);
+      Loggers.CHANNEL.info("Closed socket to " + host.getName());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -279,11 +285,12 @@ public class ChannelClient {
     this.sendMessageToProxy(msg);
   }
 
-  public void sendMessage(ChannelMessage<?, ?> message) {
-    new Thread(() -> this.sendMessageSynchronized(message)).start();
+  public Future<ResultMessage> sendMessage(ChannelMessage<?, ?> message) {
+    return this.executorService.submit(() -> this.sendMessageSynchronized(message));
   }
 
-  public void sendMessageSynchronized(ChannelMessage<?, ?> message) {
+  public ResultMessage sendMessageSynchronized(ChannelMessage<?, ?> message) {
+    ResultMessage resultMessage = new ResultMessage();
     boolean sendToProxy = false;
 
     if (this.listenerLoaded) {
@@ -305,37 +312,58 @@ public class ChannelClient {
         if (host.equals(this.manager.getProxy())) {
           sendToProxy = true;
         }
-        this.sendMessageSynchronized(host, message);
+        resultMessage.addResult(this.sendMessageSynchronizedToHost(host, message));
       }
     } else {
       this.messageStash.add(message);
     }
 
     if (!sendToProxy && !this.manager.getProxy().equals(this.manager.getSelf())) {
-      this.sendMessageSynchronized(this.manager.getProxy(), message);
+      resultMessage.addResult(this.sendMessageSynchronizedToHost(this.manager.getProxy(), message));
     }
+
+    return resultMessage;
   }
 
-  public void sendMessageToProxy(ChannelMessage<?, ?> message) {
-    this.sendMessage(this.manager.getProxy(), message);
+  public Future<ResultMessage> sendMessageToProxy(ChannelMessage<?, ?> message) {
+    return this.executorService.submit(() -> this.sendMessageSynchronizedToProxy(message));
   }
 
-  public void sendMessageSynchronizedToProxy(ChannelMessage<?, ?> message) {
-    this.sendMessageSynchronized(this.manager.getProxy(), message);
+  public ResultMessage sendMessageSynchronizedToProxy(ChannelMessage<?, ?> message) {
+    return this.sendMessageSynchronizedToHost(this.manager.getProxy(), message);
   }
 
 
-  public void sendMessage(Host host, ChannelMessage<?, ?> message) {
-    new Thread(() -> this.sendMessageSynchronized(host, message)).start();
+  public Future<ResultMessage> sendMessageToHost(Host host, ChannelMessage<?, ?> message) {
+    return this.executorService.submit(() -> this.sendMessageSynchronizedToHost(host, message));
   }
 
-  public boolean sendMessageSynchronized(Host host, ChannelMessage<?, ?> message) {
+  public ResultMessage sendMessageSynchronizedToHost(Host host, ChannelMessage<?, ?> message) {
     try {
-      this.sendMessageSynchronized(host, message, 0, null);
-      return true;
+      ChannelConnection channelConnection = this.channelByHost.get(host);
+
+      try {
+        if (channelConnection != null) {
+          if (!channelConnection.getLock().tryLock(3, TimeUnit.SECONDS)) {
+            Loggers.CHANNEL.warning("Unable to lock connection to '" + host.getName() + "', due to timeout");
+            return new ResultMessage().addResult(host, false,
+                new ChannelConnectException("send lock error", new TimeoutException("timed out while locking sending channel thread")));
+          }
+        }
+
+        this.sendMessageSynchronized(host, message, 0, null);
+      } catch (InterruptedException e) {
+        Loggers.CHANNEL.warning("Unable to lock connection to '" + host.getName() + "', due to interruption");
+        return new ResultMessage().addResult(host, false, new ChannelConnectException("send lock error", e));
+      } finally {
+        if (channelConnection != null) {
+          channelConnection.getLock().unlock();
+        }
+      }
+      return new ResultMessage().addResult(host, true, null);
     } catch (IOException e) {
-      Loggers.CHANNEL.warning("Failed to setup connection to '" + host.getHostname() + ":" + host.getPort() + "'");
-      return false;
+      Loggers.CHANNEL.warning("Failed to setup connection to '" + host.getName() + "': " + e.getMessage());
+      return new ResultMessage().addResult(host, false, new ChannelConnectException("connection setup exception", e));
     }
   }
 
@@ -343,32 +371,41 @@ public class ChannelClient {
       throws IOException {
     AtomicReference<Exception> exception = new AtomicReference<>();
 
-    Socket socket = this.socketByHost.computeIfAbsent(host, h -> {
+    ChannelConnection channelConnection = this.channelByHost.computeIfAbsent(host, h -> {
       try {
-        return new Socket(host.getHostname(), host.getPort());
+        return new ChannelConnection(host, new Socket(host.getHostname(), host.getPort()));
       } catch (IOException e) {
         exception.set(e);
         return null;
       }
     });
 
-    if (retry >= ServerChannel.CONNECTION_RETRIES) {
+    if (retry > ServerChannel.CONNECTION_RETRIES) {
       throw new IOException("Unable to establish connection to '" + host + "': " + lastException.getMessage());
     }
 
-    if (socket == null) {
-      this.socketByHost.remove(host);
+    if (retry == ServerChannel.CONNECTION_RETRIES) {
+      this.disconnectHost(host);
+      this.sendMessageSynchronized(host, message, retry + 1, null);
+    }
+
+    if (channelConnection == null) {
+      this.channelByHost.remove(host);
       this.sendMessageSynchronized(host, message, retry + 1, exception.get());
       return;
     }
 
+    if (!channelConnection.getSocket().isConnected()) {
+      Socket socket = new Socket(host.getHostname(), host.getPort());
+      channelConnection.setSocket(socket);
+      channelConnection.setOutputStream(new ObjectOutputStream(socket.getOutputStream()));
+    }
+
     try {
-      if (socket.isConnected()) {
-        OutputStreamWriter socketWriter = new OutputStreamWriter(socket.getOutputStream());
-        socketWriter.write(message.toStream());
-        socketWriter.write(System.lineSeparator());
-        socketWriter.flush();
-        Loggers.CHANNEL.info("Message send to " + host + ": '" + message.toStream() + "'");
+      if (channelConnection.getSocket().isConnected()) {
+        channelConnection.getOutputStream().writeObject(message);
+        channelConnection.getOutputStream().flush();
+        Loggers.CHANNEL.info("Send to '" + host.getName() + "': '" + message + "'");
       } else {
         this.sendMessageSynchronized(host, message, retry + 1, new ConnectException("socket is not connected"));
       }
@@ -377,7 +414,47 @@ public class ChannelClient {
     }
   }
 
-  public ConcurrentHashMap<Host, Socket> getSocketByHost() {
-    return socketByHost;
+
+  public ConcurrentHashMap<Host, ChannelConnection> getChannelByHost() {
+    return channelByHost;
+  }
+
+  public static class ChannelConnection {
+
+    private final Host host;
+    private Socket socket;
+    private ObjectOutputStream outputStream;
+
+    private final ReentrantLock lock = new ReentrantLock();
+
+    public ChannelConnection(Host host, Socket socket) throws IOException {
+      this.host = host;
+      this.socket = socket;
+      this.outputStream = new ObjectOutputStream(socket.getOutputStream());
+    }
+
+    public Host getHost() {
+      return host;
+    }
+
+    public Socket getSocket() {
+      return socket;
+    }
+
+    public void setSocket(Socket socket) {
+      this.socket = socket;
+    }
+
+    public ObjectOutputStream getOutputStream() {
+      return outputStream;
+    }
+
+    public void setOutputStream(ObjectOutputStream outputStream) {
+      this.outputStream = outputStream;
+    }
+
+    public ReentrantLock getLock() {
+      return lock;
+    }
   }
 }

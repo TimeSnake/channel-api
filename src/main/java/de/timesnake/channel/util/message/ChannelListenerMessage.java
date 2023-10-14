@@ -8,11 +8,9 @@ import de.timesnake.channel.core.ChannelType;
 import de.timesnake.channel.core.Host;
 import org.jetbrains.annotations.NotNull;
 
-public class ChannelListenerMessage<Value> extends ChannelMessage<Host, Value> {
+import java.io.Serializable;
 
-  public ChannelListenerMessage(String... args) {
-    super(args);
-  }
+public class ChannelListenerMessage<Value extends Serializable> extends ChannelMessage<Host, Value> {
 
   public ChannelListenerMessage(@NotNull Host host, @NotNull MessageType<Value> type, Value value) {
     super(ChannelType.LISTENER, host, type, value);

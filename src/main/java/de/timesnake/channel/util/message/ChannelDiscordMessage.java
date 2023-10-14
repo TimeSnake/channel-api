@@ -7,13 +7,10 @@ package de.timesnake.channel.util.message;
 import de.timesnake.channel.core.ChannelType;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.Serializable;
 import java.util.*;
 
-public class ChannelDiscordMessage<Value> extends ChannelMessage<String, Value> {
-
-  public ChannelDiscordMessage(String... args) {
-    super(args);
-  }
+public class ChannelDiscordMessage<Value extends Serializable> extends ChannelMessage<String, Value> {
 
   public ChannelDiscordMessage(@NotNull String category, @NotNull MessageType<Value> type, Value value) {
     super(ChannelType.DISCORD, category, type, value);
@@ -22,7 +19,7 @@ public class ChannelDiscordMessage<Value> extends ChannelMessage<String, Value> 
     }
   }
 
-  public static class Allocation {
+  public static class Allocation implements Serializable {
 
     // Example team: Red.UUID1.UUID2.UUID3#Blue.UUID4.UUID5#Spectator
     private static final String TEAM_DELIMITER = "#";

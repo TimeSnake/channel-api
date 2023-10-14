@@ -4,7 +4,7 @@ plugins {
 }
 
 group = project.group
-version = '2.1.2'
+version = '3.0'
 var projectId = 22
 
 repositories {

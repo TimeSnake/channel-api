@@ -4,9 +4,10 @@
 
 package de.timesnake.channel.core;
 
+import java.io.Serializable;
 import java.util.Objects;
 
-public class Host {
+public class Host implements Serializable {
 
   private final String hostname;
   private final int port;
@@ -14,11 +15,6 @@ public class Host {
   public Host(String hostname, int port) {
     this.hostname = hostname;
     this.port = port;
-  }
-
-  public static Host parseHost(String identifier) {
-    String[] s = identifier.split("\\:");
-    return new Host(s[0], Integer.parseInt(s[1]));
   }
 
   public String getHostname() {
@@ -31,7 +27,10 @@ public class Host {
 
   @Override
   public String toString() {
-    return this.hostname + ":" + this.port;
+    return "Host{" +
+        "hostname='" + hostname + '\'' +
+        ", port=" + port +
+        '}';
   }
 
   @Override
@@ -51,5 +50,9 @@ public class Host {
       return false;
     }
     return this.hostname.equals(((Host) o).getHostname()) && this.port == ((Host) o).getPort();
+  }
+
+  public String getName() {
+    return this.getHostname() + ":" + this.getPort();
   }
 }

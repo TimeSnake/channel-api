@@ -5,64 +5,44 @@
 package de.timesnake.channel.util.message;
 
 import de.timesnake.channel.core.ChannelType;
-import de.timesnake.channel.core.UnknownTypeException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public abstract class ChannelMessage<Identifier, Value> {
+import java.io.Serializable;
 
-  public static final String DIVIDER = ";";
+public abstract class ChannelMessage<Identifier extends Serializable, Value extends Serializable> implements Serializable {
 
-  protected ChannelType<Identifier> channelType;
-  protected MessageType<Value> messageType;
-  protected Identifier identifier;
+  private static final int MAX_ID = 1000;
+
+  private static int ID_COUNTER = 1;
+
+  protected final Integer id;
+  protected final ChannelType<Identifier> channelType;
+  protected final MessageType<Value> messageType;
+  protected final Identifier identifier;
   protected Value value;
-
-  public ChannelMessage(String... args) {
-    this.channelType = (ChannelType<Identifier>) ChannelType.valueOf(args[0]);
-
-    if (this.channelType == null) {
-      throw new UnknownTypeException("Unknown channel type '" + args[0] + "'");
-    }
-
-    this.messageType = (MessageType<Value>) channelType.parseMessageType(args[1]);
-
-    if (messageType == null) {
-      throw new UnknownTypeException("Unknown message type '" + args[1] + "' for channel '"
-          + args[0] + "'");
-    }
-
-    this.identifier = this.channelType.parseIdentifier(args[2]);
-    if (args.length >= 4) {
-      this.value = this.messageType.parseValue(args[3]);
-    } else {
-      this.value = this.messageType.parseValue("");
-    }
-  }
 
   public ChannelMessage(@NotNull ChannelType<Identifier> channelType, @NotNull Identifier identifier,
                         @NotNull MessageType<Value> messageType,
                         Value value) {
+    this.id = ID_COUNTER;
     this.channelType = channelType;
     this.messageType = messageType;
     this.identifier = identifier;
     this.value = value;
+
+    ID_COUNTER = ID_COUNTER + 1 % MAX_ID;
   }
 
 
   public ChannelMessage(@NotNull ChannelType<Identifier> channelType, @NotNull Identifier identifier,
                         MessageType<Value> messageType) {
+    this.id = ID_COUNTER;
     this.channelType = channelType;
     this.messageType = messageType;
     this.identifier = identifier;
-  }
 
-  public String toStream() {
-    return String.join(DIVIDER,
-        this.channelType.getName(),
-        this.messageType.getName(),
-        this.channelType.identifierToString(this.identifier),
-        this.messageType.valueToString(this.value));
+    ID_COUNTER = ID_COUNTER + 1 % MAX_ID;
   }
 
   public ChannelType<Identifier> getChannelType() {
@@ -81,5 +61,16 @@ public abstract class ChannelMessage<Identifier, Value> {
   @Nullable
   public Value getValue() {
     return value;
+  }
+
+  @Override
+  public String toString() {
+    return "ChannelMessage{" +
+        "id=" + id +
+        ", channelType=" + channelType +
+        ", messageType=" + messageType +
+        ", identifier=" + identifier +
+        ", value=" + value +
+        '}';
   }
 }

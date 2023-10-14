@@ -9,11 +9,9 @@ import de.timesnake.channel.core.Host;
 import de.timesnake.channel.util.message.MessageType.Heartbeat;
 import org.jetbrains.annotations.NotNull;
 
-public class ChannelHeartbeatMessage<Value> extends ChannelMessage<Host, Value> {
+import java.io.Serializable;
 
-  public ChannelHeartbeatMessage(String... args) {
-    super(args);
-  }
+public class ChannelHeartbeatMessage<Value extends Serializable> extends ChannelMessage<Host, Value> {
 
   public ChannelHeartbeatMessage(@NotNull Host sender, @NotNull MessageType<Value> type) {
     super(ChannelType.HEARTBEAT, sender, type);
