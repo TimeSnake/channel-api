@@ -58,8 +58,9 @@ public enum ListenerType {
   USER_SOUND(ChannelType.USER, MessageType.User.SOUND, ChannelUserMessage.class, UUID.class),
   USER_STORY_START(ChannelType.USER, MessageType.User.STORY_START, ChannelUserMessage.class, UUID.class),
   USER_STORY_END(ChannelType.USER, MessageType.User.STORY_END, ChannelUserMessage.class, UUID.class),
-  USER_STORY_PLAY_AUDIO(ChannelType.USER, MessageType.User.STORY_PLAY_AUDIO, ChannelUserMessage.class, UUID.class),
-  USER_STORY_END_AUDIO(ChannelType.USER, MessageType.User.STORY_END_AUDIO, ChannelUserMessage.class, UUID.class),
+  USER_STORY_AUDIO_PLAY(ChannelType.USER, MessageType.User.STORY_AUDIO_PLAY, ChannelUserMessage.class, UUID.class),
+  USER_STORY_AUDIO_END(ChannelType.USER, MessageType.User.STORY_AUDIO_END, ChannelUserMessage.class, UUID.class),
+  USER_STORY_AUDIO_FAIL(ChannelType.USER, MessageType.User.STORY_AUDIO_FAIL, ChannelUserMessage.class, UUID.class),
 
   USER(ChannelType.USER, null, ChannelUserMessage.class, UUID.class),
 
