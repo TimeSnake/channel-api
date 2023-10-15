@@ -94,14 +94,13 @@ public class MessageType<Value extends Serializable> implements Serializable {
     public static final MessageType<String> TEAM = new MessageType<>("team");
     public static final MessageType<String> STATISTICS = new MessageType<>("statistics");
     public static final MessageType<String> CUSTOM = new MessageType<>("custom");
-    public static final MessageType<ChannelUserMessage.Sound> SOUND = new MessageType<>("sound") {
-
-    };
+    public static final MessageType<ChannelUserMessage.Sound> SOUND = new MessageType<>("sound");
     public static final MessageType<Tuple<String, String>> STORY_START = new MessageType<>("story_start");
     public static final MessageType<VoidMessage> STORY_END = new MessageType<>("story_end");
-    public static final MessageType<String> STORY_PLAY_AUDIO = new MessageType<>("story_play_audio");
-    public static final MessageType<String> STORY_END_AUDIO = new MessageType<>("story_end_audio");
-    public static final Set<MessageType<?>> TYPES = Set.of(STATUS, SERVICE, SWITCH_PORT, SWITCH_NAME, PERMISSION, PUNISH, ALIAS, TASK, COMMAND, PROXY_COMMAND, PERM_GROUP, DISPLAY_GROUP, TEAM, STATISTICS, CUSTOM, SOUND, STORY_START, STORY_END, STORY_PLAY_AUDIO, STORY_END_AUDIO);
+    public static final MessageType<String> STORY_AUDIO_PLAY = new MessageType<>("story_audio_play");
+    public static final MessageType<String> STORY_AUDIO_END = new MessageType<>("story_audio_end");
+    public static final MessageType<String> STORY_AUDIO_FAIL = new MessageType<>("story_audio_fail");
+    public static final Set<MessageType<?>> TYPES = Set.of(STATUS, SERVICE, SWITCH_PORT, SWITCH_NAME, PERMISSION, PUNISH, ALIAS, TASK, COMMAND, PROXY_COMMAND, PERM_GROUP, DISPLAY_GROUP, TEAM, STATISTICS, CUSTOM, SOUND, STORY_START, STORY_END, STORY_AUDIO_PLAY, STORY_AUDIO_END, STORY_AUDIO_FAIL);
 
     public User(String name) {
       super(name);

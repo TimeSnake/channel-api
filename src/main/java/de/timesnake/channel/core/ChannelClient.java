@@ -68,6 +68,8 @@ public class ChannelClient {
 
 
   protected ConcurrentHashMap<Host, ChannelConnection> channelByHost = new ConcurrentHashMap<>();
+  protected ConcurrentHashMap<Host, ReentrantLock> lockByHost = new ConcurrentHashMap<>();
+
   protected Set<Socket> loggingSockets = ConcurrentHashMap.newKeySet();
 
 
@@ -340,15 +342,16 @@ public class ChannelClient {
 
   public ResultMessage sendMessageSynchronizedToHost(Host host, ChannelMessage<?, ?> message) {
     try {
-      ChannelConnection channelConnection = this.channelByHost.get(host);
+      ReentrantLock hostLock = this.lockByHost.computeIfAbsent(host, k -> new ReentrantLock());
+
+      boolean locked = false;
 
       try {
-        if (channelConnection != null) {
-          if (!channelConnection.getLock().tryLock(3, TimeUnit.SECONDS)) {
-            Loggers.CHANNEL.warning("Unable to lock connection to '" + host.getName() + "', due to timeout");
-            return new ResultMessage().addResult(host, false,
-                new ChannelConnectException("send lock error", new TimeoutException("timed out while locking sending channel thread")));
-          }
+        locked = hostLock.tryLock(3, TimeUnit.SECONDS);
+        if (!locked) {
+          Loggers.CHANNEL.warning("Unable to lock connection to '" + host.getName() + "', due to timeout");
+          return new ResultMessage().addResult(host, false,
+              new ChannelConnectException("send lock error", new TimeoutException("timed out while locking sending channel thread")));
         }
 
         this.sendMessageSynchronized(host, message, 0, null);
@@ -356,8 +359,8 @@ public class ChannelClient {
         Loggers.CHANNEL.warning("Unable to lock connection to '" + host.getName() + "', due to interruption");
         return new ResultMessage().addResult(host, false, new ChannelConnectException("send lock error", e));
       } finally {
-        if (channelConnection != null) {
-          channelConnection.getLock().unlock();
+        if (locked) {
+          hostLock.unlock();
         }
       }
       return new ResultMessage().addResult(host, true, null);
@@ -381,12 +384,12 @@ public class ChannelClient {
     });
 
     if (retry > ServerChannel.CONNECTION_RETRIES) {
-      throw new IOException("Unable to establish connection to '" + host + "': " + lastException.getMessage());
+      throw new IOException("Unable to establish connection to '" + host.getName() + "': " + lastException.getMessage());
     }
 
     if (retry == ServerChannel.CONNECTION_RETRIES) {
       this.disconnectHost(host);
-      this.sendMessageSynchronized(host, message, retry + 1, null);
+      this.sendMessageSynchronized(host, message, retry + 1, lastException);
     }
 
     if (channelConnection == null) {
@@ -414,7 +417,6 @@ public class ChannelClient {
     }
   }
 
-
   public ConcurrentHashMap<Host, ChannelConnection> getChannelByHost() {
     return channelByHost;
   }
@@ -424,8 +426,6 @@ public class ChannelClient {
     private final Host host;
     private Socket socket;
     private ObjectOutputStream outputStream;
-
-    private final ReentrantLock lock = new ReentrantLock();
 
     public ChannelConnection(Host host, Socket socket) throws IOException {
       this.host = host;
@@ -451,10 +451,6 @@ public class ChannelClient {
 
     public void setOutputStream(ObjectOutputStream outputStream) {
       this.outputStream = outputStream;
-    }
-
-    public ReentrantLock getLock() {
-      return lock;
     }
   }
 }
