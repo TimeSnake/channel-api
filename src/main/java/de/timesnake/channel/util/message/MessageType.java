@@ -53,12 +53,10 @@ public class MessageType<Value extends Serializable> implements Serializable {
     public static final MessageType<VoidMessage> PERMISSION = new MessageType<>("permission");
     public static final MessageType<String> GAME_MAP = new MessageType<>("game_map");
     public static final MessageType<String> GAME_WORLD = new MessageType<>("game_world");
+    public static final MessageType<Integer> GAME_PLAYERS = new MessageType<>("game_players");
     public static final MessageType<String> PASSWORD = new MessageType<>("password");
     public static final MessageType<Boolean> OLD_PVP = new MessageType<>("old_pvp");
-    public static final MessageType<ChannelServerMessage.State> STATE = new MessageType<>("state") {
-
-    };
-    public static final MessageType<String> CUSTOM = new MessageType<>("custom");
+    public static final MessageType<ChannelServerMessage.State> STATE = new MessageType<>("state");
     public static final MessageType<Integer> RESTART = new MessageType<>("restart");
     public static final MessageType<Integer> DESTROY = new MessageType<>("destroy");
     public static final MessageType<Long> KILL_DESTROY = new MessageType<>("kill_destroy");
@@ -69,8 +67,11 @@ public class MessageType<Value extends Serializable> implements Serializable {
     public static final MessageType<String> LOADED_WORLD = new MessageType<>("loaded_world");
     public static final MessageType<String> UNLOADED_WORLD = new MessageType<>("unloaded_world");
     public static final MessageType<VoidMessage> UNLOADED_ALL_WORLDS = new MessageType<>("unloaded_all_worlds");
+    public static final MessageType<String> CUSTOM = new MessageType<>("custom");
 
-    public static final Set<MessageType<?>> TYPES = Set.of(STATUS, ONLINE_PLAYERS, MAX_PLAYERS, COMMAND, PERMISSION, GAME_MAP, GAME_WORLD, PASSWORD, OLD_PVP, STATE, CUSTOM, RESTART, DESTROY, KILL_DESTROY, DISCORD, USER_STATS, LOAD_WORLD, UNLOAD_WORLD, LOADED_WORLD, UNLOADED_WORLD, UNLOADED_ALL_WORLDS);
+    public static final Set<MessageType<?>> TYPES = Set.of(STATUS, ONLINE_PLAYERS, MAX_PLAYERS, COMMAND, PERMISSION,
+        GAME_MAP, GAME_WORLD, GAME_PLAYERS, PASSWORD, OLD_PVP, STATE, CUSTOM, RESTART, DESTROY, KILL_DESTROY, DISCORD,
+        USER_STATS, LOAD_WORLD, UNLOAD_WORLD, LOADED_WORLD, UNLOADED_WORLD, UNLOADED_ALL_WORLDS);
 
     public Server(String name) {
       super(name);
@@ -100,7 +101,9 @@ public class MessageType<Value extends Serializable> implements Serializable {
     public static final MessageType<String> STORY_AUDIO_PLAY = new MessageType<>("story_audio_play");
     public static final MessageType<String> STORY_AUDIO_END = new MessageType<>("story_audio_end");
     public static final MessageType<String> STORY_AUDIO_FAIL = new MessageType<>("story_audio_fail");
-    public static final Set<MessageType<?>> TYPES = Set.of(STATUS, SERVICE, SWITCH_PORT, SWITCH_NAME, PERMISSION, PUNISH, ALIAS, TASK, COMMAND, PROXY_COMMAND, PERM_GROUP, DISPLAY_GROUP, TEAM, STATISTICS, CUSTOM, SOUND, STORY_START, STORY_END, STORY_AUDIO_PLAY, STORY_AUDIO_END, STORY_AUDIO_FAIL);
+    public static final Set<MessageType<?>> TYPES = Set.of(STATUS, SERVICE, SWITCH_PORT, SWITCH_NAME, PERMISSION,
+        PUNISH, ALIAS, TASK, COMMAND, PROXY_COMMAND, PERM_GROUP, DISPLAY_GROUP, TEAM, STATISTICS, CUSTOM, SOUND,
+        STORY_START, STORY_END, STORY_AUDIO_PLAY, STORY_AUDIO_END, STORY_AUDIO_FAIL);
 
     public User(String name) {
       super(name);
@@ -124,8 +127,10 @@ public class MessageType<Value extends Serializable> implements Serializable {
 
   public abstract static class Listener<Value extends Serializable> extends MessageType<Value> {
 
-    public static final MessageType<Tuple<ChannelType<?>, ?>> IDENTIFIER_LISTENER = new MessageType<>("identifier_listener");
-    public static final MessageType<Tuple<ChannelType<?>, MessageType<?>>> MESSAGE_TYPE_LISTENER = new MessageType<>("message_type_listener");
+    public static final MessageType<Tuple<ChannelType<?>, ?>> IDENTIFIER_LISTENER = new MessageType<>(
+        "identifier_listener");
+    public static final MessageType<Tuple<ChannelType<?>, MessageType<?>>> MESSAGE_TYPE_LISTENER = new MessageType<>(
+        "message_type_listener");
 
     public static final MessageType<String> REGISTER_SERVER = new MessageType<>("register_server");
     public static final MessageType<String> UNREGISTER_SERVER = new MessageType<>("unregister_server");
@@ -135,7 +140,8 @@ public class MessageType<Value extends Serializable> implements Serializable {
 
     public static final MessageType<VoidMessage> CLOSE_SOCKET = new MessageType<>("close_socket");
 
-    public static final Set<MessageType<?>> TYPES = Set.of(IDENTIFIER_LISTENER, MESSAGE_TYPE_LISTENER, REGISTER_SERVER, UNREGISTER_SERVER, REGISTER_HOST, UNREGISTER_HOST, CLOSE_SOCKET);
+    public static final Set<MessageType<?>> TYPES = Set.of(IDENTIFIER_LISTENER, MESSAGE_TYPE_LISTENER,
+        REGISTER_SERVER, UNREGISTER_SERVER, REGISTER_HOST, UNREGISTER_HOST, CLOSE_SOCKET);
 
     public Listener(String name) {
       super(name);
@@ -182,7 +188,8 @@ public class MessageType<Value extends Serializable> implements Serializable {
 
     };
 
-    public static final Set<MessageType<?>> TYPES = Set.of(MOVE_MEMBERS, DELETE_UNUSED, HIDE_CHANNELS, DESTROY_CHANNELS, MUTE_CHANNEL);
+    public static final Set<MessageType<?>> TYPES = Set.of(MOVE_MEMBERS, DELETE_UNUSED, HIDE_CHANNELS,
+        DESTROY_CHANNELS, MUTE_CHANNEL);
 
     public Discord(String name) {
       super(name);

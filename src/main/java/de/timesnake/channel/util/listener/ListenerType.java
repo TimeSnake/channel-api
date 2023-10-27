@@ -22,6 +22,7 @@ public enum ListenerType {
   SERVER_PERMISSION(ChannelType.SERVER, MessageType.Server.PERMISSION, ChannelServerMessage.class, Integer.class),
   SERVER_GAME_MAP(ChannelType.SERVER, MessageType.Server.GAME_MAP, ChannelServerMessage.class, Integer.class),
   SERVER_GAME_WORLD(ChannelType.SERVER, Server.GAME_WORLD, ChannelServerMessage.class, Integer.class),
+  SERVER_GAME_PLAYERS(ChannelType.SERVER, Server.GAME_PLAYERS, ChannelServerMessage.class, Integer.class),
   SERVER_OLD_PVP(ChannelType.SERVER, MessageType.Server.OLD_PVP, ChannelServerMessage.class, Integer.class),
   SERVER_PASSWORD(ChannelType.SERVER, MessageType.Server.PASSWORD, ChannelServerMessage.class, Integer.class),
   SERVER_STATE(ChannelType.SERVER, MessageType.Server.STATE, ChannelServerMessage.class, Integer.class),
