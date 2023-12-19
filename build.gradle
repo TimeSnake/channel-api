@@ -3,33 +3,51 @@ plugins {
   id 'maven-publish'
 }
 
-group = project.group
+group = "de.timesnake"
 version = '3.0.5'
 var projectId = 22
 
 repositories {
   mavenLocal()
   mavenCentral()
+  maven {
+    url "https://git.timesnake.de/api/v4/groups/7/-/packages/maven"
+    name "TimeSnake"
+    credentials {
+      username = timesnakeUser
+      password = timesnakePassword
+    }
+  }
 }
 
 dependencies {
-  compileOnly project(':library-basic')
-  compileOnly project(':library-chat')
+  compileOnly "de.timesnake:library-basic:1.2.2"
+  compileOnly "de.timesnake:library-chat:1.1"
 
   compileOnly 'org.jetbrains:annotations:23.0.0'
+}
+
+configurations.configureEach {
+  resolutionStrategy.dependencySubstitution {
+    substitute module("de.timesnake:library-basic") using project(":library-basic")
+    substitute module("de.timesnake:library-chat") using project(":library-chat")
+  }
 }
 
 publishing {
   repositories {
     maven {
-        url "https://git.timesnake.de/api/v4/projects/" + projectId + "/packages/maven"
-      credentials {
-          username = timesnakeDeployUser
-          password = timesnakeDeployKey
+      url "https://git.timesnake.de/api/v4/projects/" + projectId + "/packages/maven"
+      credentials(HttpHeaderCredentials) {
+        name = "Job-Token"
+        value = System.getenv("CI_JOB_TOKEN")
       }
-
+      authentication {
+        header(HttpHeaderAuthentication)
+      }
     }
   }
+
   publications {
     mavenJava(MavenPublication) {
       from components.java
