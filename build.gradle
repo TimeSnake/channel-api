@@ -1,7 +1,10 @@
 plugins {
+  id 'java'
+  id 'java-base'
   id 'java-library'
   id 'maven-publish'
 }
+
 
 group = "de.timesnake"
 version = '3.0.5'
@@ -53,4 +56,12 @@ publishing {
       from components.java
     }
   }
+}
+
+tasks.withType(JavaCompile).configureEach {
+  options.encoding = 'UTF-8'
+}
+
+java {
+  withSourcesJar()
 }
