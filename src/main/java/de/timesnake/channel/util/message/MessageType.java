@@ -5,6 +5,7 @@
 package de.timesnake.channel.util.message;
 
 import de.timesnake.channel.core.ChannelType;
+import de.timesnake.library.basic.util.Punishment;
 import de.timesnake.library.basic.util.Status;
 import de.timesnake.library.basic.util.Tuple;
 
@@ -85,7 +86,7 @@ public class MessageType<Value extends Serializable> implements Serializable {
     public static final MessageType<Integer> SWITCH_PORT = new MessageType<>("switch_port");
     public static final MessageType<String> SWITCH_NAME = new MessageType<>("switch_name");
     public static final MessageType<VoidMessage> PERMISSION = new MessageType<>("permission");
-    public static final MessageType<VoidMessage> PUNISH = new MessageType<>("punish");
+    public static final MessageType<Punishment> PUNISH = new MessageType<>("punish");
     public static final MessageType<VoidMessage> ALIAS = new MessageType<>("alias");
     public static final MessageType<String> TASK = new MessageType<>("task");
     public static final MessageType<String> COMMAND = new MessageType<>("command");
