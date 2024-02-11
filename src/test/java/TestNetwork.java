@@ -27,15 +27,15 @@ public class TestNetwork {
     int corePort = anyPort();
 
     List<Channel> channels = new ArrayList<>();
-    channels.add(createChannelInstance(corePort, corePort));
+    channels.add(createChannelInstance(corePort));
 
     for (int i = 1; i < number; i++) {
-      channels.add(createChannelInstance(anyPort(), corePort));
+      channels.add(createChannelInstance(anyPort()));
     }
     return channels;
   }
 
-  public static Channel createChannelInstance(int port, int proxyPort) {
+  public static Channel createChannelInstance(int port) {
     return new Channel(Thread.currentThread(),
         new ChannelParticipant("127.0.0.1", port),
         "0.0.0.0"

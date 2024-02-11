@@ -147,7 +147,6 @@ public abstract class ChannelSender {
 
     try {
       if (connection.getSocket().isConnected()) {
-        message.setSource(this.manager.getSelf().toString());
         connection.getOutputStream().writeObject(message);
         connection.getOutputStream().flush();
         logger.debug("Sent to '{}': {}", connection.getParticipant(), message);
