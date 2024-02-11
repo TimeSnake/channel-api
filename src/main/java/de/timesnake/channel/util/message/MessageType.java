@@ -4,16 +4,14 @@
 
 package de.timesnake.channel.util.message;
 
-import de.timesnake.channel.core.ChannelType;
+import de.timesnake.channel.core.ChannelParticipant;
+import de.timesnake.channel.core.MessageListenerData;
 import de.timesnake.library.basic.util.Punishment;
 import de.timesnake.library.basic.util.Status;
 import de.timesnake.library.basic.util.Tuple;
 
 import java.io.Serializable;
-import java.util.LinkedList;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public class MessageType<Value extends Serializable> implements Serializable {
 
@@ -126,25 +124,24 @@ public class MessageType<Value extends Serializable> implements Serializable {
     }
   }
 
-  public abstract static class Listener<Value extends Serializable> extends MessageType<Value> {
+  public abstract static class Control<Value extends Serializable> extends MessageType<Value> {
 
-    public static final MessageType<Tuple<ChannelType<?>, ?>> IDENTIFIER_LISTENER = new MessageType<>(
-        "identifier_listener");
-    public static final MessageType<Tuple<ChannelType<?>, MessageType<?>>> MESSAGE_TYPE_LISTENER = new MessageType<>(
-        "message_type_listener");
+    public static final MessageType<FilterMessage<MessageListenerData<?>>> INIT = new MessageType<>("init");
+    public static final MessageType<FilterMessage<MessageListenerData<?>>> INIT_ACK = new MessageType<>("init_ack");
+    public static final MessageType<VoidMessage> HOSTS_REQUEST = new MessageType<>("hosts_request");
+    public static final MessageType<ArrayList<ChannelParticipant>> HOSTS_LIST = new MessageType<>("hosts_list");
+    public static final MessageType<VoidMessage> INIT_FIN = new MessageType<>("init_fin");
+    public static final MessageType<VoidMessage> RECONNECT = new MessageType<>("reconnect");
+    public static final MessageType<VoidMessage> CLOSE = new MessageType<>("close");
 
-    public static final MessageType<String> REGISTER_SERVER = new MessageType<>("register_server");
-    public static final MessageType<String> UNREGISTER_SERVER = new MessageType<>("unregister_server");
+    public static final MessageType<MessageListenerData<?>> LISTENER_ADD = new MessageType<>("listener_add");
+    public static final MessageType<MessageListenerData<?>> LISTENER_REMOVE = new MessageType<>("listener_remove");
 
-    public static final MessageType<VoidMessage> REGISTER_HOST = new MessageType<>("register_host");
-    public static final MessageType<VoidMessage> UNREGISTER_HOST = new MessageType<>("unregister_host");
+    public static final Set<MessageType<?>> TYPES = Set.of(
+        INIT, INIT_ACK, HOSTS_REQUEST, HOSTS_LIST, INIT_FIN, RECONNECT, CLOSE,
+        LISTENER_ADD, LISTENER_REMOVE);
 
-    public static final MessageType<VoidMessage> CLOSE_SOCKET = new MessageType<>("close_socket");
-
-    public static final Set<MessageType<?>> TYPES = Set.of(IDENTIFIER_LISTENER, MESSAGE_TYPE_LISTENER,
-        REGISTER_SERVER, UNREGISTER_SERVER, REGISTER_HOST, UNREGISTER_HOST, CLOSE_SOCKET);
-
-    public Listener(String name) {
+    public Control(String name) {
       super(name);
     }
   }
@@ -206,19 +203,6 @@ public class MessageType<Value extends Serializable> implements Serializable {
     public static final Set<MessageType<?>> TYPES = Set.of(INIT_PLAYER_SERVER, INIT_PUBLIC_PLAYER_SERVER, UPDATE_WORLD);
 
     public Templates(String name) {
-      super(name);
-    }
-  }
-
-  public abstract static class Logging<Value extends Serializable> extends MessageType<Value> {
-
-    public static final MessageType<String> INFO = new MessageType<>("info");
-    public static final MessageType<String> WARNING = new MessageType<>("warning");
-    public static final MessageType<String> ERROR = new MessageType<>("error");
-
-    public static final Set<MessageType<?>> TYPES = Set.of(INFO, WARNING, ERROR);
-
-    public Logging(String name) {
       super(name);
     }
   }

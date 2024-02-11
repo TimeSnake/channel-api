@@ -4,7 +4,7 @@
 
 package de.timesnake.channel.util.listener;
 
-import de.timesnake.channel.core.Host;
+import de.timesnake.channel.core.ChannelParticipant;
 import de.timesnake.library.basic.util.Tuple;
 
 import java.util.HashMap;
@@ -14,13 +14,13 @@ public class ResultMessage {
 
   private boolean successful = true;
 
-  private final Map<Host, Tuple<Boolean, ChannelException>> sendResults = new HashMap<>();
+  private final Map<ChannelParticipant, Tuple<Boolean, ChannelException>> sendResults = new HashMap<>();
 
   public ResultMessage() {
 
   }
 
-  public ResultMessage addResult(Host host, Boolean successful, ChannelException exception) {
+  public ResultMessage addResult(ChannelParticipant host, Boolean successful, ChannelException exception) {
     this.sendResults.put(host, new Tuple<>(successful, exception));
 
     if (!successful) {
@@ -44,7 +44,7 @@ public class ResultMessage {
     return successful;
   }
 
-  public Map<Host, Tuple<Boolean, ChannelException>> getSendResults() {
+  public Map<ChannelParticipant, Tuple<Boolean, ChannelException>> getSendResults() {
     return sendResults;
   }
 }

@@ -1,0 +1,33 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+participant A
+participant B
+
+autonumber
+
+A -> B: init[listener filter]
+B -> A: init_ack[listener_filter]
+
+
+par
+loop
+A -> B: listener
+end
+
+else
+loop
+B -> A: listener
+end
+end
+
+par
+A -> B: finalize
+else
+B -> A: finalize
+end
+
+A -> B: host_request
+B -> A: host_list
+
+@enduml

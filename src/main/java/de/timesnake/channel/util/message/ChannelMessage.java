@@ -12,11 +12,7 @@ import java.io.Serializable;
 
 public abstract class ChannelMessage<Identifier extends Serializable, Value extends Serializable> implements Serializable {
 
-  private static final int MAX_ID = 1000;
-
-  private static int ID_COUNTER = 1;
-
-  protected final Integer id;
+  protected String source;
   protected final ChannelType<Identifier> channelType;
   protected final MessageType<Value> messageType;
   protected final Identifier identifier;
@@ -25,24 +21,26 @@ public abstract class ChannelMessage<Identifier extends Serializable, Value exte
   public ChannelMessage(@NotNull ChannelType<Identifier> channelType, @NotNull Identifier identifier,
                         @NotNull MessageType<Value> messageType,
                         Value value) {
-    this.id = ID_COUNTER;
     this.channelType = channelType;
     this.messageType = messageType;
     this.identifier = identifier;
     this.value = value;
-
-    ID_COUNTER = ID_COUNTER + 1 % MAX_ID;
   }
 
 
   public ChannelMessage(@NotNull ChannelType<Identifier> channelType, @NotNull Identifier identifier,
                         MessageType<Value> messageType) {
-    this.id = ID_COUNTER;
     this.channelType = channelType;
     this.messageType = messageType;
     this.identifier = identifier;
+  }
 
-    ID_COUNTER = ID_COUNTER + 1 % MAX_ID;
+  public String getSource() {
+    return source;
+  }
+
+  public void setSource(String source) {
+    this.source = source;
   }
 
   public ChannelType<Identifier> getChannelType() {
@@ -66,7 +64,7 @@ public abstract class ChannelMessage<Identifier extends Serializable, Value exte
   @Override
   public String toString() {
     return "ChannelMessage{" +
-        "id=" + id +
+        "source=" + source +
         ", channelType=" + channelType +
         ", messageType=" + messageType +
         ", identifier=" + identifier +
