@@ -4,33 +4,30 @@
 
 package de.timesnake.channel.util;
 
-import de.timesnake.channel.core.Host;
-import de.timesnake.channel.core.ServerChannel;
 import de.timesnake.channel.util.listener.ChannelListener;
-import de.timesnake.channel.util.listener.ChannelMessageFilter;
-import de.timesnake.channel.util.listener.ListenerType;
 import de.timesnake.channel.util.listener.ResultMessage;
 import de.timesnake.channel.util.message.ChannelMessage;
+import org.jetbrains.annotations.NotNull;
 
+import java.io.Serializable;
+import java.util.Collection;
 import java.util.concurrent.Future;
 
 public interface Channel {
 
   static Channel getInstance() {
-    return ServerChannel.getInstance();
+    return de.timesnake.channel.core.Channel.getInstance();
   }
 
   void addListener(ChannelListener listener);
 
-  void addListener(ChannelListener listener, ChannelMessageFilter<?> filter);
+  <Identifier extends Serializable> void addListener(ChannelListener listener,
+                                                     @NotNull Collection<Identifier> identifiers);
 
-  void removeListener(ChannelListener listener, ListenerType... types);
+  void removeListener(ChannelListener listener);
 
   Future<ResultMessage> sendMessage(ChannelMessage<?, ?> message);
 
-  ResultMessage sendMessageSynchronized(ChannelMessage<?, ?> message);
+  ResultMessage sendMessageSync(ChannelMessage<?, ?> message);
 
-  Host getHost();
-
-  String getProxyName();
 }

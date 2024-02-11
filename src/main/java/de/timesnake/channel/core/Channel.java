@@ -4,27 +4,28 @@
 
 package de.timesnake.channel.core;
 
+import ch.qos.logback.classic.Logger;
 import de.timesnake.channel.util.listener.ChannelListener;
-import de.timesnake.channel.util.listener.ChannelMessageFilter;
-import de.timesnake.channel.util.listener.ListenerType;
 import de.timesnake.channel.util.listener.ResultMessage;
-import de.timesnake.channel.util.message.ChannelHeartbeatMessage;
-import de.timesnake.channel.util.message.ChannelListenerMessage;
 import de.timesnake.channel.util.message.ChannelMessage;
-import de.timesnake.channel.util.message.MessageType.Heartbeat;
-import de.timesnake.channel.util.message.MessageType.Listener;
+import de.timesnake.channel.util.message.FilterMessage;
+import de.timesnake.channel.util.message.MessageType.Control;
 import de.timesnake.channel.util.message.VoidMessage;
 import de.timesnake.library.basic.util.Loggers;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.net.Socket;
 import java.time.Duration;
-import java.util.HashSet;
-import java.util.Map.Entry;
-import java.util.Set;
+import java.util.Collection;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
 public abstract class Channel implements de.timesnake.channel.util.Channel {
+
+  public final Logger logger = (Logger) LoggerFactory.getLogger("channel");
 
   public static Channel getInstance() {
     return instance;
@@ -36,93 +37,126 @@ public abstract class Channel implements de.timesnake.channel.util.Channel {
     }
   }
 
-  protected static final Duration DEFAULT_TIME_OUT = Duration.ofSeconds(40);
   protected static final int CONNECTION_RETRIES = 3;
   private static Channel instance;
 
   protected final Thread mainThread;
 
   protected String listenHostName;
-  protected final Host self;
-
-  protected final Host proxy;
-  protected final String proxyName;
+  protected final ChannelParticipant self;
 
   protected ChannelServer server;
   protected Thread serverThread;
 
-  protected ChannelClient client;
+  protected ListenerBasedChannelSender sender;
+  protected ControlMessageReceiver controlMessageReceiver;
+  protected LocalListenerManager localListenerManager;
 
-  protected Duration timeOut = null;
-  protected Thread timeOutThread;
-  protected final Set<Host> pingedHosts = new HashSet<>();
+  protected ConcurrentHashMap<ChannelParticipant, ChannelConnection> channelByParticipant = new ConcurrentHashMap<>();
 
-  protected Channel(@NotNull Thread mainThread, @NotNull Host self, @NotNull Host proxy,
-                    @NotNull String listenHostName, @NotNull String proxyName) {
+  private Thread initConnectThread;
+
+  protected Channel(@NotNull Thread mainThread, @NotNull ChannelParticipant self, @NotNull String listenHostName) {
     this.mainThread = mainThread;
-
     this.self = self;
-    this.proxy = proxy;
     this.listenHostName = listenHostName;
-    this.proxyName = proxyName;
     this.load();
-    this.setTimeOut(DEFAULT_TIME_OUT);
   }
 
   private void load() {
-    this.loadChannelClient();
-    this.loadChannelServer();
-  }
-
-  protected void loadChannelServer() {
-    this.server = new ChannelServer(this) {
-      @Override
-      public void runSync(SyncRun syncRun) {
-        Channel.this.runSync(syncRun);
-      }
-    };
-  }
-
-  protected void loadChannelClient() {
-    this.client = new ChannelClient(this);
-  }
-
-  protected void setTimeOut(Duration duration) {
-    this.timeOut = duration;
-
-    if (this.timeOutThread != null && this.timeOutThread.isAlive()) {
-      this.timeOutThread.interrupt();
-    }
-    this.startTimeOutThread();
+    this.server = new ChannelServer(this);
+    this.controlMessageReceiver = new ControlMessageReceiver(this);
+    this.localListenerManager = new LocalListenerManager(this);
+    this.sender = new ListenerBasedChannelSender(this);
   }
 
   public void start() {
     this.serverThread = new Thread(this.server);
+    this.serverThread.setDaemon(true);
     this.serverThread.start();
-    Loggers.CHANNEL.info("Channel started, listening on " + this.self);
+    logger.info("Channel started, listening on {}", this.self);
+  }
+
+  public void registerToNetwork(ChannelParticipant networkMember, Duration retryPeriod) {
+    this.initConnectThread = new Thread(() -> {
+      this.connectToInitHost(networkMember, retryPeriod);
+      this.getSender().sendMessageSync(networkMember, new ChannelControlMessage<>(this.self, Control.HOSTS_REQUEST));
+    });
+    this.initConnectThread.start();
+  }
+
+  private void connectToInitHost(ChannelParticipant networkMember, Duration retryPeriod) {
+    ResultMessage resultMessage = this.getControlMessageManager().initConnectionToHost(networkMember);
+
+    if (resultMessage.isSuccessful()) {
+      this.onNetworkConnected();
+    } else {
+      logger.warn("Failed to connect to init host, retrying ...");
+      try {
+        Thread.sleep(retryPeriod.toMillis());
+      } catch (InterruptedException ignored) {
+      }
+
+      this.connectToInitHost(networkMember, retryPeriod);
+    }
+  }
+
+  public void selfInit() {
+    this.sender.unstash();
   }
 
   public void stop() {
-    final ChannelListenerMessage<VoidMessage> message = new ChannelListenerMessage<>(this.getSelf(), Listener.UNREGISTER_HOST);
-    this.client.sendMessageToProxy(message);
+    ChannelControlMessage<VoidMessage> msg = new ChannelControlMessage<>(this.getSelf(), Control.CLOSE);
+    this.getKnownParticipants().forEach(p -> this.getSender().sendMessageSync(p, msg));
+
     if (this.serverThread.isAlive()) {
       this.serverThread.interrupt();
-      Loggers.CHANNEL.info("Channel stopped");
     }
 
-    if (this.timeOutThread.isAlive()) {
-      this.timeOutThread.interrupt();
+    for (ChannelConnection connection : this.getChannelConnections()) {
+      try {
+        connection.close();
+      } catch (IOException e) {
+        logger.warn("Exception while closing socket to '{}'", connection.getParticipant());
+      }
+    }
+
+    if (this.initConnectThread != null && this.initConnectThread.isAlive()) {
+      this.initConnectThread.interrupt();
+    }
+
+    Loggers.CHANNEL.info("Channel stopped");
+  }
+
+  protected void acceptConnection(Socket socket) {
+    ChannelConnection connection = new ChannelConnection(this, socket.getInetAddress().getHostName());
+    this.updateConnectionSocket(socket, connection, false);
+  }
+
+  protected void updateConnectionSocket(Socket socket, ChannelConnection connection, boolean reconnect) {
+    try {
+      connection.updateSocket(socket, reconnect);
+    } catch (IOException e) {
+      logger.warn("Failed to add connection of host '{}': {}", connection.getHostname(), e.getMessage());
     }
   }
 
-  protected abstract void runSync(SyncRun syncRun);
+  public void disconnectHost(ChannelConnection connection) {
+    try {
+      if (connection.getParticipant() != null) {
+        this.channelByParticipant.remove(connection.getParticipant());
+      }
+      connection.close();
+      logger.info("Closed socket to '{}'", connection.getParticipant().getName());
+    } catch (IOException e) {
+      logger.warn("Exception while closing socket to '{}': {}", connection.getParticipant().getName(), e.getMessage());
+    }
+  }
 
-  public Host getSelf() {
+  protected abstract void runSync(Runnable runnable);
+
+  public ChannelParticipant getSelf() {
     return self;
-  }
-
-  public Host getProxy() {
-    return proxy;
   }
 
   public String getListenHostName() {
@@ -130,112 +164,68 @@ public abstract class Channel implements de.timesnake.channel.util.Channel {
   }
 
   @Override
-  public String getProxyName() {
-    return proxyName;
-  }
-
   public Future<ResultMessage> sendMessage(ChannelMessage<?, ?> message) {
-    return this.client.sendMessage(message);
+    return this.sender.sendMessageStashed(message);
   }
 
   @Override
-  public ResultMessage sendMessageSynchronized(ChannelMessage<?, ?> message) {
-    return this.client.sendMessageSynchronized(message);
-  }
-
-  public Future<ResultMessage> sendMessageToProxy(ChannelMessage<?, ?> message) {
-    return this.client.sendMessageToProxy(message);
-  }
-
-  protected void sendListenerMessage(ListenerType type, ChannelMessageFilter<?> filter) {
-    this.client.sendListenerMessage(type, filter);
+  public ResultMessage sendMessageSync(ChannelMessage<?, ?> message) {
+    return this.sender.sendMessageSyncAndStashed(message);
   }
 
   @Override
   public void addListener(ChannelListener listener) {
-    this.server.addLocalListener(listener);
+    this.localListenerManager.addLocalListener(listener);
   }
 
   @Override
-  public void addListener(ChannelListener listener, ChannelMessageFilter<?> filter) {
-    this.server.addLocalListener(listener, filter);
+  public <Identifier extends Serializable> void addListener(ChannelListener listener,
+                                                            @NotNull Collection<Identifier> identifiers) {
+    this.localListenerManager.addLocalListener(listener, identifiers);
   }
 
   @Override
-  public void removeListener(ChannelListener listener, ListenerType... types) {
-    this.server.removeListener(listener, types);
+  public void removeListener(ChannelListener listener) {
+    this.localListenerManager.removeListener(listener);
   }
 
-  @Override
-  public Host getHost() {
-    return this.self;
+  public ConcurrentHashMap<ChannelParticipant, ChannelConnection> getChannelByParticipant() {
+    return channelByParticipant;
   }
 
-  public ChannelServer getServer() {
+  public Collection<ChannelParticipant> getKnownParticipants() {
+    return channelByParticipant.values().stream().map(ChannelConnection::getParticipant).toList();
+  }
+
+  public Collection<ChannelConnection> getChannelConnections() {
+    return channelByParticipant.values();
+  }
+
+  public ChannelConnection getChannelConnection(ChannelParticipant participant) {
+    return this.channelByParticipant.get(participant);
+  }
+
+  public void onNetworkConnected() {
+    logger.info("Connected to channel network");
+  }
+
+  protected ChannelServer getServer() {
     return server;
   }
 
-  public ChannelClient getClient() {
-    return client;
+  public ListenerBasedChannelSender getSender() {
+    return sender;
   }
 
-  public void connectToProxy(ChannelListenerMessage<?> msg, Duration retryPeriod) {
-    this.client.connectToProxy(msg, retryPeriod);
+  protected LocalListenerManager getLocalListenerManager() {
+    return localListenerManager;
   }
 
-  public void onProxyConnected() {
-    Loggers.CHANNEL.info("Connected to proxy server");
+  public ControlMessageReceiver getControlMessageManager() {
+    return controlMessageReceiver;
   }
 
-  public void onHostTimeOut(Host host) {
-    Loggers.CHANNEL.warning("Lost connection to '" + host + "'");
-    this.client.disconnectHost(host);
-  }
-
-  public void onHeartBeatMessage(ChannelHeartbeatMessage<?> msg) {
-    if (msg.getMessageType().equals(Heartbeat.PONG)) {
-      this.pingedHosts.remove(msg.getIdentifier());
-    } else if (msg.getMessageType().equals(Heartbeat.PING)) {
-      this.client.sendMessageSynchronizedToHost(msg.getIdentifier(), new ChannelHeartbeatMessage<>(this.self, Heartbeat.PONG));
-    }
-  }
-
-  protected void startTimeOutThread() {
-    if (this.timeOut == null) {
-      return;
-    }
-
-    this.timeOutThread = new Thread(() -> {
-      while (true) {
-        ChannelHeartbeatMessage<VoidMessage> msg = new ChannelHeartbeatMessage<>(this.self, Heartbeat.PING);
-
-        for (Entry<Host, ChannelClient.ChannelConnection> entry : Channel.this.client.getChannelByHost().entrySet()) {
-          Host host = entry.getKey();
-          Socket socket = entry.getValue().getSocket();
-
-          if (!socket.isConnected()) {
-            Channel.this.onHostTimeOut(host);
-          } else {
-            Channel.this.client.sendMessageSynchronizedToHost(host, msg);
-            Channel.this.pingedHosts.add(host);
-          }
-        }
-
-        try {
-          Thread.sleep(this.timeOut.toMillis());
-        } catch (InterruptedException ignored) {
-          break;
-        }
-
-        for (Host host : Channel.this.pingedHosts) {
-          Channel.this.onHostTimeOut(host);
-        }
-
-        Channel.this.pingedHosts.clear();
-      }
-    });
-    this.timeOutThread.setDaemon(true);
-    this.timeOutThread.start();
-    Loggers.CHANNEL.info("Started channel time out ping");
+  protected FilterMessage<MessageListenerData<?>> getListenerFilter() {
+    return messageListenerData -> true;
   }
 }

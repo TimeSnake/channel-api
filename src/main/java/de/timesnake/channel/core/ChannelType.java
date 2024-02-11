@@ -29,11 +29,11 @@ public abstract class ChannelType<Identifier extends Serializable> implements Se
       return Server.TYPES;
     }
   };
-  public static final ChannelType<Host> LISTENER = new ChannelType<>("listener") {
+  public static final ChannelType<ChannelParticipant> CONTROL = new ChannelType<>("control") {
 
     @Override
     public Collection<MessageType<?>> getMessageTypes() {
-      return Listener.TYPES;
+      return Control.TYPES;
     }
   };
   public static final ChannelType<String> GROUP = new ChannelType<>("group") {
@@ -43,7 +43,7 @@ public abstract class ChannelType<Identifier extends Serializable> implements Se
       return Group.TYPES;
     }
   };
-  public static final ChannelType<Host> HEARTBEAT = new ChannelType<>("heartbeat") {
+  public static final ChannelType<ChannelParticipant> HEARTBEAT = new ChannelType<>("heartbeat") {
 
     @Override
     public Collection<MessageType<?>> getMessageTypes() {
@@ -72,16 +72,9 @@ public abstract class ChannelType<Identifier extends Serializable> implements Se
       return Templates.TYPES;
     }
   };
-  public static final ChannelType<String> LOGGING = new ChannelType<>("logging") {
 
-    @Override
-    public Collection<MessageType<?>> getMessageTypes() {
-      return Logging.TYPES;
-    }
-  };
-
-  public static final List<ChannelType<?>> TYPES = List.of(USER, SERVER, LISTENER, GROUP,
-      HEARTBEAT, SUPPORT, DISCORD, TEMPLATES, LOGGING);
+  public static final List<ChannelType<?>> TYPES = List.of(USER, SERVER, CONTROL, GROUP,
+      HEARTBEAT, SUPPORT, DISCORD, TEMPLATES);
 
   private final String name;
 
