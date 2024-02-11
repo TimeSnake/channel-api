@@ -12,7 +12,6 @@ import java.io.Serializable;
 
 public abstract class ChannelMessage<Identifier extends Serializable, Value extends Serializable> implements Serializable {
 
-  protected String source;
   protected final ChannelType<Identifier> channelType;
   protected final MessageType<Value> messageType;
   protected final Identifier identifier;
@@ -33,14 +32,6 @@ public abstract class ChannelMessage<Identifier extends Serializable, Value exte
     this.channelType = channelType;
     this.messageType = messageType;
     this.identifier = identifier;
-  }
-
-  public String getSource() {
-    return source;
-  }
-
-  public void setSource(String source) {
-    this.source = source;
   }
 
   public ChannelType<Identifier> getChannelType() {
@@ -64,8 +55,7 @@ public abstract class ChannelMessage<Identifier extends Serializable, Value exte
   @Override
   public String toString() {
     return "ChannelMessage{" +
-        "source=" + source +
-        ", channelType=" + channelType +
+        "channelType=" + channelType +
         ", messageType=" + messageType +
         ", identifier=" + identifier +
         ", value=" + value +

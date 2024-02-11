@@ -24,13 +24,13 @@ public class P2PTests extends TestNetwork {
   @BeforeEach
   void setupChannels() {
     int corePort = anyPort();
-    core = createChannelInstance(corePort, corePort);
+    core = createChannelInstance(corePort);
     core.start();
     core.selfInit();
 
-    client = createChannelInstance(anyPort(), corePort);
+    client = createChannelInstance(anyPort());
     client.start();
-    client.registerToNetwork(Duration.ofSeconds(10));
+    client.registerToNetwork(core.getSelf(), Duration.ofSeconds(10));
   }
 
   @AfterEach
