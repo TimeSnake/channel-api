@@ -4,9 +4,7 @@
 
 package de.timesnake.channel.core;
 
-import de.timesnake.channel.util.message.ChannelHeartbeatMessage;
 import de.timesnake.channel.util.message.ChannelMessage;
-import de.timesnake.channel.util.message.MessageType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,11 +76,6 @@ public class ChannelReceiver {
 
   private void handleMessage(ChannelMessage<?, ?> msg) {
     ChannelType<?> type = msg.getChannelType();
-
-    if (ChannelType.HEARTBEAT.equals(type)) {
-      this.manager.sendMessageSync(new ChannelHeartbeatMessage<>(this.manager.self, MessageType.Heartbeat.PONG));
-      return;
-    }
 
     if (ChannelType.CONTROL.equals(type)) {
       this.manager.getControlMessageManager().handleControlMessage(connection, (ChannelControlMessage<?>) msg);

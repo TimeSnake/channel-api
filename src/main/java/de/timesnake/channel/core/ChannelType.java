@@ -15,42 +15,35 @@ import java.util.UUID;
 
 public abstract class ChannelType<Identifier extends Serializable> implements Serializable {
 
-  public static final ChannelType<UUID> USER = new ChannelType<>("user") {
+  public static final ChannelType<UUID> USER = new ChannelType<>("user", UUID.class) {
 
     @Override
     public Collection<MessageType<?>> getMessageTypes() {
       return User.TYPES;
     }
   };
-  public static final ChannelType<String> SERVER = new ChannelType<>("server") {
+  public static final ChannelType<String> SERVER = new ChannelType<>("server", String.class) {
 
     @Override
     public Collection<MessageType<?>> getMessageTypes() {
       return Server.TYPES;
     }
   };
-  public static final ChannelType<ChannelParticipant> CONTROL = new ChannelType<>("control") {
+  public static final ChannelType<ChannelParticipant> CONTROL = new ChannelType<>("control", ChannelParticipant.class) {
 
     @Override
     public Collection<MessageType<?>> getMessageTypes() {
       return Control.TYPES;
     }
   };
-  public static final ChannelType<String> GROUP = new ChannelType<>("group") {
+  public static final ChannelType<String> GROUP = new ChannelType<>("group", String.class) {
 
     @Override
     public Collection<MessageType<?>> getMessageTypes() {
       return Group.TYPES;
     }
   };
-  public static final ChannelType<ChannelParticipant> HEARTBEAT = new ChannelType<>("heartbeat") {
-
-    @Override
-    public Collection<MessageType<?>> getMessageTypes() {
-      return Heartbeat.TYPES;
-    }
-  };
-  public static final ChannelType<String> SUPPORT = new ChannelType<>("support") {
+  public static final ChannelType<String> SUPPORT = new ChannelType<>("support", String.class) {
 
     @Override
     public Collection<MessageType<?>> getMessageTypes() {
@@ -58,14 +51,14 @@ public abstract class ChannelType<Identifier extends Serializable> implements Se
     }
   };
 
-  public static final ChannelType<String> DISCORD = new ChannelType<>("discord") {
+  public static final ChannelType<String> DISCORD = new ChannelType<>("discord", String.class) {
 
     @Override
     public Collection<MessageType<?>> getMessageTypes() {
       return Discord.TYPES;
     }
   };
-  public static final ChannelType<String> TEMPLATES = new ChannelType<>("templates") {
+  public static final ChannelType<String> TEMPLATES = new ChannelType<>("templates", String.class) {
 
     @Override
     public Collection<MessageType<?>> getMessageTypes() {
@@ -73,13 +66,14 @@ public abstract class ChannelType<Identifier extends Serializable> implements Se
     }
   };
 
-  public static final List<ChannelType<?>> TYPES = List.of(USER, SERVER, CONTROL, GROUP,
-      HEARTBEAT, SUPPORT, DISCORD, TEMPLATES);
+  public static final List<ChannelType<?>> TYPES = List.of(USER, SERVER, CONTROL, GROUP, SUPPORT, DISCORD, TEMPLATES);
 
   private final String name;
+  private final Class<? extends Serializable> identifierClass;
 
-  public ChannelType(String name) {
+  public ChannelType(String name, Class<? extends Serializable> identifierClass) {
     this.name = name;
+    this.identifierClass = identifierClass;
   }
 
   public String getName() {
@@ -87,6 +81,10 @@ public abstract class ChannelType<Identifier extends Serializable> implements Se
   }
 
   public abstract Collection<MessageType<?>> getMessageTypes();
+
+  public Class<? extends Serializable> getIdentifierClass() {
+    return identifierClass;
+  }
 
   @Override
   public String toString() {

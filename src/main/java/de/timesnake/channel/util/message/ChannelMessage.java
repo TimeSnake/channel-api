@@ -4,6 +4,7 @@
 
 package de.timesnake.channel.util.message;
 
+import de.timesnake.channel.core.ChannelParticipant;
 import de.timesnake.channel.core.ChannelType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -12,6 +13,7 @@ import java.io.Serializable;
 
 public abstract class ChannelMessage<Identifier extends Serializable, Value extends Serializable> implements Serializable {
 
+  protected ChannelParticipant source;
   protected final ChannelType<Identifier> channelType;
   protected final MessageType<Value> messageType;
   protected final Identifier identifier;
@@ -52,10 +54,20 @@ public abstract class ChannelMessage<Identifier extends Serializable, Value exte
     return value;
   }
 
+  public void setSource(@NotNull ChannelParticipant source) {
+    this.source = source;
+  }
+
+  @NotNull
+  public ChannelParticipant getSource() {
+    return source;
+  }
+
   @Override
   public String toString() {
     return "ChannelMessage{" +
-        "channelType=" + channelType +
+        "source=" + source +
+        ", channelType=" + channelType +
         ", messageType=" + messageType +
         ", identifier=" + identifier +
         ", value=" + value +
