@@ -4,7 +4,6 @@
 
 package de.timesnake.channel.core;
 
-import ch.qos.logback.classic.Logger;
 import de.timesnake.channel.util.listener.ChannelListener;
 import de.timesnake.channel.util.listener.ResultMessage;
 import de.timesnake.channel.util.message.ChannelMessage;
@@ -13,6 +12,7 @@ import de.timesnake.channel.util.message.MessageType.Control;
 import de.timesnake.channel.util.message.VoidMessage;
 import de.timesnake.library.basic.util.Loggers;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
@@ -25,7 +25,7 @@ import java.util.concurrent.Future;
 
 public abstract class Channel implements de.timesnake.channel.util.Channel {
 
-  public final Logger logger = (Logger) LoggerFactory.getLogger("channel");
+  public final Logger logger = LoggerFactory.getLogger("channel");
 
   public static Channel getInstance() {
     return instance;
@@ -49,7 +49,7 @@ public abstract class Channel implements de.timesnake.channel.util.Channel {
   protected Thread serverThread;
 
   protected ListenerBasedChannelSender sender;
-  protected ControlMessageReceiver controlMessageReceiver;
+  protected ControlMessageManager controlMessageManager;
   protected LocalListenerManager localListenerManager;
 
   protected ConcurrentHashMap<ChannelParticipant, ChannelConnection> channelByParticipant = new ConcurrentHashMap<>();
@@ -65,7 +65,7 @@ public abstract class Channel implements de.timesnake.channel.util.Channel {
 
   private void load() {
     this.server = new ChannelServer(this);
-    this.controlMessageReceiver = new ControlMessageReceiver(this);
+    this.controlMessageManager = new ControlMessageManager(this);
     this.localListenerManager = new LocalListenerManager(this);
     this.sender = new ListenerBasedChannelSender(this);
   }
@@ -89,6 +89,7 @@ public abstract class Channel implements de.timesnake.channel.util.Channel {
     ResultMessage resultMessage = this.getControlMessageManager().initConnectionToHost(networkMember);
 
     if (resultMessage.isSuccessful()) {
+      logger.info("Connected to channel network");
       this.onNetworkConnected();
     } else {
       logger.warn("Failed to connect to init host, retrying ...");
@@ -148,6 +149,7 @@ public abstract class Channel implements de.timesnake.channel.util.Channel {
       }
       connection.close();
       logger.info("Closed socket to '{}'", connection.getParticipant().getName());
+      this.onConnectionClose(connection);
     } catch (IOException e) {
       logger.warn("Exception while closing socket to '{}': {}", connection.getParticipant().getName(), e.getMessage());
     }
@@ -206,7 +208,11 @@ public abstract class Channel implements de.timesnake.channel.util.Channel {
   }
 
   public void onNetworkConnected() {
-    logger.info("Connected to channel network");
+
+  }
+
+  public void onConnectionClose(ChannelConnection connection) {
+
   }
 
   protected ChannelServer getServer() {
@@ -221,8 +227,8 @@ public abstract class Channel implements de.timesnake.channel.util.Channel {
     return localListenerManager;
   }
 
-  public ControlMessageReceiver getControlMessageManager() {
-    return controlMessageReceiver;
+  public ControlMessageManager getControlMessageManager() {
+    return controlMessageManager;
   }
 
   protected FilterMessage<MessageListenerData<?>> getListenerFilter() {

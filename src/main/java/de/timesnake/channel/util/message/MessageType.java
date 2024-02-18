@@ -66,11 +66,13 @@ public class MessageType<Value extends Serializable> implements Serializable {
     public static final MessageType<String> LOADED_WORLD = new MessageType<>("loaded_world");
     public static final MessageType<String> UNLOADED_WORLD = new MessageType<>("unloaded_world");
     public static final MessageType<VoidMessage> UNLOADED_ALL_WORLDS = new MessageType<>("unloaded_all_worlds");
+    public static final MessageType<VoidMessage> PING = new MessageType<>("ping");
+    public static final MessageType<VoidMessage> PONG = new MessageType<>("pong");
     public static final MessageType<String> CUSTOM = new MessageType<>("custom");
 
     public static final Set<MessageType<?>> TYPES = Set.of(STATUS, ONLINE_PLAYERS, MAX_PLAYERS, COMMAND, PERMISSION,
         GAME_MAP, GAME_WORLD, GAME_PLAYERS, PASSWORD, OLD_PVP, STATE, CUSTOM, RESTART, DESTROY, KILL_DESTROY, DISCORD,
-        USER_STATS, LOAD_WORLD, UNLOAD_WORLD, LOADED_WORLD, UNLOADED_WORLD, UNLOADED_ALL_WORLDS);
+        USER_STATS, LOAD_WORLD, UNLOAD_WORLD, LOADED_WORLD, UNLOADED_WORLD, UNLOADED_ALL_WORLDS, PING, PONG);
 
     public Server(String name) {
       super(name);
@@ -154,20 +156,6 @@ public class MessageType<Value extends Serializable> implements Serializable {
     public static final Set<MessageType<?>> TYPES = Set.of(ALIAS, PERMISSION);
 
     public Group(String name) {
-      super(name);
-    }
-  }
-
-  public abstract static class Heartbeat extends MessageType<VoidMessage> {
-
-    public static final MessageType<VoidMessage> PING = new MessageType<>("ping");
-    public static final MessageType<VoidMessage> PONG = new MessageType<>("pong");
-    public static final MessageType<VoidMessage> SERVER_PING = new MessageType<>("server_ping");
-    public static final MessageType<String> SERVER_PONG = new MessageType<>("server_pong");
-
-    public static final Set<MessageType<?>> TYPES = Set.of(PING, PONG, SERVER_PING, SERVER_PONG);
-
-    public Heartbeat(String name) {
       super(name);
     }
   }

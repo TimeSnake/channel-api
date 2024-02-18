@@ -15,13 +15,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
-public class ControlMessageReceiver {
+public class ControlMessageManager {
 
-  public final Logger logger = LoggerFactory.getLogger("channel.receiver.control");
+  public final Logger logger = LoggerFactory.getLogger("channel.control");
 
   private final Channel manager;
 
-  public ControlMessageReceiver(Channel manager) {
+  public ControlMessageManager(Channel manager) {
     this.manager = manager;
   }
 
