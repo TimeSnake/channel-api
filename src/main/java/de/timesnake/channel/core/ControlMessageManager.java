@@ -7,8 +7,8 @@ package de.timesnake.channel.core;
 import de.timesnake.channel.util.listener.ResultMessage;
 import de.timesnake.channel.util.message.FilterMessage;
 import de.timesnake.channel.util.message.MessageType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -17,7 +17,7 @@ import java.util.function.Predicate;
 
 public class ControlMessageManager {
 
-  public final Logger logger = LoggerFactory.getLogger("channel.control");
+  public final Logger logger = LogManager.getLogger("channel.control");
 
   private final Channel manager;
 
@@ -28,9 +28,10 @@ public class ControlMessageManager {
   public synchronized void handleControlMessage(ChannelConnection connection, ChannelControlMessage<?> msg) {
     MessageType<?> messageType = msg.getMessageType();
     if (messageType.equals(MessageType.Control.LISTENER_ADD)) {
-      this.manager.getSender().addReceiverHost(msg.getIdentifier(), (MessageListenerData<?>) msg.getValue());
+      this.manager.getSender().addReceiverHost(msg.getIdentifier(), (ArrayList<MessageListenerData<?>>) msg.getValue());
     } else if (messageType.equals(MessageType.Control.LISTENER_REMOVE)) {
-      this.manager.getSender().removeReceiverHost(msg.getIdentifier(), (MessageListenerData<?>) msg.getValue());
+      this.manager.getSender().removeReceiverHost(msg.getIdentifier(),
+          (ArrayList<MessageListenerData<?>>) msg.getValue());
     } else if (messageType.equals(MessageType.Control.INIT)) {
       this.handleInitMessage(connection, (ChannelControlMessage<FilterMessage<MessageListenerData<?>>>) msg);
     } else if (messageType.equals(MessageType.Control.INIT_ACK)) {
@@ -51,7 +52,7 @@ public class ControlMessageManager {
   public void handleHostsRequestMessage(ChannelConnection connection) {
     this.manager.getSender().sendMessageSync(connection.getParticipant(),
         new ChannelControlMessage<>(this.manager.getSelf(),
-        MessageType.Control.HOSTS_LIST, new ArrayList<>(this.manager.getKnownParticipants())));
+            MessageType.Control.HOSTS_LIST, new ArrayList<>(this.manager.getKnownParticipants())));
   }
 
   public void handleHostsListMessage(List<ChannelParticipant> participants) {

@@ -10,7 +10,7 @@ import de.timesnake.channel.util.message.ChannelMessage;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
-import java.util.Collection;
+import java.util.Set;
 import java.util.concurrent.Future;
 
 public interface Channel {
@@ -21,10 +21,16 @@ public interface Channel {
 
   void addListener(ChannelListener listener);
 
-  <Identifier extends Serializable> void addListener(ChannelListener listener,
-                                                     @NotNull Collection<Identifier> identifiers);
+  <Identifier extends Serializable> void addListener(ChannelListener listener, @NotNull Set<Identifier> identifiers);
+
+  void addListenerSync(ChannelListener listener);
+
+  <Identifier extends Serializable> void addListenerSync(ChannelListener listener,
+                                                         @NotNull Set<Identifier> identifiers);
 
   void removeListener(ChannelListener listener);
+
+  void removeListenerSync(ChannelListener listener);
 
   Future<ResultMessage> sendMessage(ChannelMessage<?, ?> message);
 

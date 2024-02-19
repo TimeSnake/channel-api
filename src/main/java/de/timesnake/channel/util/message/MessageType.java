@@ -136,8 +136,9 @@ public class MessageType<Value extends Serializable> implements Serializable {
     public static final MessageType<VoidMessage> RECONNECT = new MessageType<>("reconnect");
     public static final MessageType<VoidMessage> CLOSE = new MessageType<>("close");
 
-    public static final MessageType<MessageListenerData<?>> LISTENER_ADD = new MessageType<>("listener_add");
-    public static final MessageType<MessageListenerData<?>> LISTENER_REMOVE = new MessageType<>("listener_remove");
+    public static final MessageType<ArrayList<MessageListenerData<?>>> LISTENER_ADD = new MessageType<>("listener_add");
+    public static final MessageType<ArrayList<MessageListenerData<?>>> LISTENER_REMOVE = new MessageType<>(
+        "listener_remove");
 
     public static final Set<MessageType<?>> TYPES = Set.of(
         INIT, INIT_ACK, HOSTS_REQUEST, HOSTS_LIST, INIT_FIN, RECONNECT, CLOSE,

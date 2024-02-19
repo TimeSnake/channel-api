@@ -4,8 +4,8 @@
 
 package de.timesnake.channel.core;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -14,7 +14,7 @@ import java.net.Socket;
 
 public class ChannelServer implements Runnable {
 
-  public final Logger logger = LoggerFactory.getLogger("channel.server");
+  public final Logger logger = LogManager.getLogger("channel.server");
 
   protected final Channel manager;
 

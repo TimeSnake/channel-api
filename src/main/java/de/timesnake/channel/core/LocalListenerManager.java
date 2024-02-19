@@ -9,27 +9,28 @@ import de.timesnake.channel.util.listener.ChannelListener;
 import de.timesnake.channel.util.listener.InconsistentChannelListenerException;
 import de.timesnake.channel.util.listener.ListenerType;
 import de.timesnake.channel.util.message.ChannelMessage;
+import de.timesnake.channel.util.message.MessageType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
+import java.util.concurrent.*;
 
 public class LocalListenerManager {
 
-  public final Logger logger = LoggerFactory.getLogger("channel.local_listener");
+  public final Logger logger = LogManager.getLogger("channel.local_listener");
 
   protected Channel manager;
 
   protected ConcurrentHashMap<MessageListenerData<?>, ConcurrentHashMap<ChannelListener,
       Set<Method>>> listeners = new ConcurrentHashMap<>();
+
+  protected final ExecutorService executorService = new ThreadPoolExecutor(2, 100,
+      5L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
 
   public LocalListenerManager(Channel manager) {
     this.manager = manager;
@@ -70,11 +71,23 @@ public class LocalListenerManager {
   }
 
   public void addLocalListener(ChannelListener listener) {
-    this.addLocalListener(listener, List.of());
+    this.addLocalListener(listener, Set.of());
   }
 
   public <Identifier extends Serializable> void addLocalListener(ChannelListener listener,
-                                                                 @NotNull Collection<Identifier> identifiers) {
+                                                                 @NotNull Set<Identifier> identifiers) {
+    this.executorService.execute(() -> this.addLocalListenerSync(listener, identifiers));
+  }
+
+  public void addLocalListenerSync(ChannelListener listener) {
+    this.addLocalListenerSync(listener, Set.of());
+  }
+
+  public <Identifier extends Serializable> void addLocalListenerSync(ChannelListener listener,
+                                                                     @NotNull Set<Identifier> identifiers) {
+
+    HashMap<ChannelType<?>, List<MessageType<?>>> messageData = new HashMap<>();
+    HashMap<ChannelType<?>, List<MessageType<?>>> filteredMessageData = new HashMap<>();
 
     Class<?> clazz = listener.getClass();
 
@@ -123,7 +136,11 @@ public class LocalListenerManager {
           }
 
           if (newType) {
-            this.manager.getSender().broadcastListener(type.getChannelType(), type.getMessageType(), identifiers);
+            if (annotation.filtered()) {
+              filteredMessageData.computeIfAbsent(type.getChannelType(), k -> new ArrayList<>()).add(type.getMessageType());
+            } else {
+              messageData.computeIfAbsent(type.getChannelType(), k -> new ArrayList<>()).add(type.getMessageType());
+            }
           }
           logger.info("Added listener '{}' of class '{}'", type.name().toLowerCase(), clazz.getSimpleName());
         }
@@ -131,11 +148,27 @@ public class LocalListenerManager {
 
       clazz = clazz.getSuperclass();
     } while (clazz != null && ChannelListener.class.isAssignableFrom(clazz));
+
+
+    for (Map.Entry<ChannelType<?>, List<MessageType<?>>> entry : messageData.entrySet()) {
+      this.manager.getSender().broadcastListener(entry.getKey(), entry.getValue(), List.of());
+    }
+    for (Map.Entry<ChannelType<?>, List<MessageType<?>>> entry : filteredMessageData.entrySet()) {
+      this.manager.getSender().broadcastListener(entry.getKey(), entry.getValue(), identifiers);
+    }
   }
 
   public void removeListener(ChannelListener listener) {
+    this.executorService.execute(() -> this.removeListenerSync(listener));
+  }
+
+  public void removeListenerSync(ChannelListener listener) {
     Set<Map.Entry<MessageListenerData<?>, ConcurrentHashMap<ChannelListener, Set<Method>>>> entries =
         this.listeners.entrySet();
+
+    HashMap<ChannelType<?>, List<MessageType<?>>> messageData = new HashMap<>();
+    HashMap<ChannelType<?>, List<MessageType<?>>> filteredMessageData = new HashMap<>();
+    Collection<Serializable> identifiers = new HashSet<>();
 
     for (Map.Entry<MessageListenerData<?>, ConcurrentHashMap<ChannelListener, Set<Method>>> entry : entries) {
       MessageListenerData<?> data = entry.getKey();
@@ -143,10 +176,21 @@ public class LocalListenerManager {
       entry.getValue().remove(listener);
 
       if (entry.getValue().isEmpty()) {
-        this.manager.getSender().revokeListener(data.getChannelType(), data.getMessageType(),
-            data.getIdentifier() != null ? List.of(data.getIdentifier()) : List.of());
+        if (data.getIdentifier() != null) {
+          identifiers.add(data.getIdentifier());
+          filteredMessageData.computeIfAbsent(data.getChannelType(), k -> new ArrayList<>()).add(data.getMessageType());
+        } else {
+          messageData.computeIfAbsent(data.getChannelType(), k -> new ArrayList<>()).add(data.getMessageType());
+        }
         logger.info("Revoke listener for {}", data);
       }
+    }
+
+    for (Map.Entry<ChannelType<?>, List<MessageType<?>>> entry : messageData.entrySet()) {
+      this.manager.getSender().revokeListener(entry.getKey(), entry.getValue(), List.of());
+    }
+    for (Map.Entry<ChannelType<?>, List<MessageType<?>>> entry : filteredMessageData.entrySet()) {
+      this.manager.getSender().revokeListener(entry.getKey(), entry.getValue(), identifiers);
     }
   }
 }
