@@ -25,7 +25,6 @@ repositories {
 
 dependencies {
   compileOnly "de.timesnake:library-basic:1.+"
-  compileOnly "de.timesnake:library-chat:1.+"
 
   compileOnly 'org.jetbrains:annotations:23.0.0'
   compileOnly 'org.apache.logging.log4j:log4j-api:2.22.1'
@@ -41,7 +40,6 @@ configurations.configureEach {
   resolutionStrategy.dependencySubstitution {
     if (project.parent != null) {
       substitute module("de.timesnake:library-basic") using project(":library-basic")
-      substitute module("de.timesnake:library-chat") using project(":library-chat")
     }
   }
 }
