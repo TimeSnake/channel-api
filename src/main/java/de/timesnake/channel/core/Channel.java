@@ -11,21 +11,22 @@ import de.timesnake.channel.util.message.FilterMessage;
 import de.timesnake.channel.util.message.MessageType.Control;
 import de.timesnake.channel.util.message.VoidMessage;
 import de.timesnake.library.basic.util.Loggers;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.Socket;
 import java.time.Duration;
 import java.util.Collection;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
 public abstract class Channel implements de.timesnake.channel.util.Channel {
 
-  public final Logger logger = LoggerFactory.getLogger("channel");
+  public final Logger logger = LogManager.getLogger("channel");
 
   public static Channel getInstance() {
     return instance;
@@ -182,13 +183,29 @@ public abstract class Channel implements de.timesnake.channel.util.Channel {
 
   @Override
   public <Identifier extends Serializable> void addListener(ChannelListener listener,
-                                                            @NotNull Collection<Identifier> identifiers) {
+                                                            @NotNull Set<Identifier> identifiers) {
     this.localListenerManager.addLocalListener(listener, identifiers);
+  }
+
+  @Override
+  public void addListenerSync(ChannelListener listener) {
+    this.localListenerManager.addLocalListenerSync(listener);
+  }
+
+  @Override
+  public <Identifier extends Serializable> void addListenerSync(ChannelListener listener,
+                                                                @NotNull Set<Identifier> identifiers) {
+    this.localListenerManager.addLocalListenerSync(listener, identifiers);
   }
 
   @Override
   public void removeListener(ChannelListener listener) {
     this.localListenerManager.removeListener(listener);
+  }
+
+  @Override
+  public void removeListenerSync(ChannelListener listener) {
+    this.localListenerManager.removeListenerSync(listener);
   }
 
   public ConcurrentHashMap<ChannelParticipant, ChannelConnection> getChannelByParticipant() {

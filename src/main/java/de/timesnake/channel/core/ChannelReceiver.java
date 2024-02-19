@@ -5,8 +5,8 @@
 package de.timesnake.channel.core;
 
 import de.timesnake.channel.util.message.ChannelMessage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.EOFException;
 import java.io.OptionalDataException;
@@ -15,7 +15,7 @@ import java.net.SocketException;
 
 public class ChannelReceiver {
 
-  public final Logger logger = LoggerFactory.getLogger("channel.receiver");
+  public final Logger logger = LogManager.getLogger("channel.receiver");
 
   protected final Channel manager;
   protected ChannelConnection connection;
@@ -69,8 +69,9 @@ public class ChannelReceiver {
           connection.getSocket().getPort(), e.getMessage());
     } catch (Exception e) {
       logger.warn("Exception while handling message from '{}:{}': {}",
-          connection.getSocket().getInetAddress().getHostName(),
-          connection.getSocket().getPort(), e.getMessage());
+          connection.getParticipant().getName(),
+          connection.getParticipant().getListenPort(), e.getMessage());
+      e.printStackTrace();
     }
   }
 

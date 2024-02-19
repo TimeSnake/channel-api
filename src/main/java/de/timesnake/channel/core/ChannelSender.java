@@ -7,8 +7,8 @@ package de.timesnake.channel.core;
 import de.timesnake.channel.util.listener.ChannelException;
 import de.timesnake.channel.util.listener.ResultMessage;
 import de.timesnake.channel.util.message.ChannelMessage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -20,7 +20,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class ChannelSender {
 
-  public final Logger logger = LoggerFactory.getLogger("channel.sender");
+  public final Logger logger = LogManager.getLogger("channel.sender");
 
   protected final Channel manager;
 

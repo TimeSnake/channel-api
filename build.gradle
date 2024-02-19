@@ -28,11 +28,13 @@ dependencies {
   compileOnly "de.timesnake:library-chat:1.+"
 
   compileOnly 'org.jetbrains:annotations:23.0.0'
-  implementation 'ch.qos.logback:logback-classic:1.4.12'
+  compileOnly 'org.apache.logging.log4j:log4j-api:2.22.1'
+  compileOnly 'org.apache.logging.log4j:log4j-core:2.22.1'
 
   testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
   testImplementation "de.timesnake:library-basic:1.+"
   testImplementation "de.timesnake:library-chat:1.+"
+  testImplementation 'ch.qos.logback:logback-classic:1.4.12'
 }
 
 configurations.configureEach {

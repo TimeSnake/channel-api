@@ -6,20 +6,23 @@ package de.timesnake.channel.core;
 
 import de.timesnake.channel.util.message.ChannelMessage;
 import de.timesnake.channel.util.message.MessageType;
+import de.timesnake.library.basic.util.Tuple;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class ListenerBasedChannelSender extends ChannelSender {
 
-  public final Logger logger = LoggerFactory.getLogger("channel.sender.listener");
+  public final Logger logger = LogManager.getLogger("channel.sender.listener");
 
   protected ConcurrentHashMap<MessageListenerData<?>, Set<ChannelParticipant>> listenerHosts =
       new ConcurrentHashMap<>();
@@ -39,81 +42,100 @@ public class ListenerBasedChannelSender extends ChannelSender {
     return hosts;
   }
 
-  protected void sendListenerMessage(ChannelControlMessage<MessageListenerData<?>> msg) {
-    this.manager.getChannelConnections().stream()
-        .filter(c -> c.getListenerFilter() != null && c.getListenerFilter().test(msg.getValue()))
-        .forEach(c -> this.manager.getSender().sendMessage(c.getParticipant(), msg));
+  protected void sendListenerMessage(MessageType<ArrayList<MessageListenerData<?>>> type,
+                                     ArrayList<MessageListenerData<?>> data) {
+    for (ChannelConnection connection : this.manager.getChannelConnections()) {
+      ArrayList<MessageListenerData<?>> filteredData = data.stream()
+          .filter(d -> connection.getListenerFilter() == null || connection.getListenerFilter().test(d))
+          .collect(Collectors.toCollection(ArrayList::new));
+
+      this.manager.getSender().sendMessage(connection.getParticipant(),
+          new ChannelControlMessage<>(this.manager.getSelf(), type, filteredData));
+    }
   }
 
   public void sendAllListenerMessagesTo(ChannelParticipant participant, Predicate<MessageListenerData<?>> predicate) {
-    this.sentListenerMessages.stream()
-        .filter(data -> predicate == null || predicate.test(data))
-        .forEach(data -> manager.getSender().sendMessageSync(participant,
-            new ChannelControlMessage<>(this.manager.getSelf(), MessageType.Control.LISTENER_ADD, data)));
+    ArrayList<MessageListenerData<?>> data = this.sentListenerMessages.stream()
+        .filter(d -> predicate == null || predicate.test(d))
+        .collect(Collectors.toCollection(ArrayList::new));
+    manager.getSender().sendMessageSync(participant, new ChannelControlMessage<>(this.manager.getSelf(),
+        MessageType.Control.LISTENER_ADD, data));
     logger.info("Sent stashed listeners to '{}'", participant);
   }
 
-  public void broadcastListener(@NotNull ChannelType<?> channelType, @NotNull MessageType<?> messageType,
+  public void broadcastListener(@NotNull ChannelType<?> channelType, @NotNull Collection<MessageType<?>> messageTypes,
                                 @NotNull Collection<? extends Serializable> identifiers) {
-    MessageListenerData<?> data = new MessageListenerData<>(channelType, messageType, null);
 
-    if (this.sentListenerMessages.contains(data)) {
-      return;
+    ArrayList<MessageListenerData<?>> data;
+    if (identifiers.isEmpty()) {
+      data = messageTypes.stream()
+          .map(t -> new MessageListenerData<>(channelType, t, null))
+          .filter(this.sentListenerMessages::add)
+          .collect(Collectors.toCollection(ArrayList::new));
+
+    } else {
+      data = messageTypes.stream()
+          .flatMap(t -> identifiers.stream().map(i -> new Tuple<>(t, i)))
+          .map(t -> new MessageListenerData<>(channelType, t.getA(), t.getB()))
+          .filter(this.sentListenerMessages::add)
+          .collect(Collectors.toCollection(ArrayList::new));
     }
 
-    if (identifiers.isEmpty()) {
-      if (this.sentListenerMessages.add(data)) {
-        this.sendListenerMessage(new ChannelControlMessage<>(this.manager.getSelf(), MessageType.Control.LISTENER_ADD,
-            data));
-      }
-    } else {
-      for (Serializable identifier : identifiers) {
-        data = new MessageListenerData<>(channelType, messageType, identifier);
-
-        if (this.sentListenerMessages.add(data)) {
-          this.sendListenerMessage(new ChannelControlMessage<>(this.manager.getSelf(),
-              MessageType.Control.LISTENER_ADD, data));
-        }
-      }
-
+    if (!data.isEmpty()) {
+      this.sendListenerMessage(MessageType.Control.LISTENER_ADD, data);
+      logger.info("Broadcast listener message: {}", data);
     }
   }
 
-  public void revokeListener(@NotNull ChannelType<?> channelType, @NotNull MessageType<?> messageType,
+  public void revokeListener(@NotNull ChannelType<?> channelType, @NotNull Collection<MessageType<?>> messageTypes,
                              @NotNull Collection<? extends Serializable> identifiers) {
+
+    ArrayList<MessageListenerData<?>> data;
     if (identifiers.isEmpty()) {
-      MessageListenerData<?> data = new MessageListenerData<>(channelType, messageType, null);
-      this.sentListenerMessages.remove(data);
-      this.sendListenerMessage(new ChannelControlMessage<>(this.manager.getSelf(),
-          MessageType.Control.LISTENER_REMOVE, data));
+      data = messageTypes.stream()
+          .map(t -> new MessageListenerData<>(channelType, t, null))
+          .peek(this.sentListenerMessages::remove)
+          .collect(Collectors.toCollection(ArrayList::new));
+
     } else {
-      for (Serializable identifier : identifiers) {
-        MessageListenerData<?> data = new MessageListenerData<>(channelType, messageType, identifier);
-        this.sentListenerMessages.remove(data);
-        this.sendListenerMessage(new ChannelControlMessage<>(this.manager.getSelf(),
-            MessageType.Control.LISTENER_REMOVE, data));
-      }
+      data = messageTypes.stream()
+          .flatMap(t -> identifiers.stream().map(i -> new Tuple<>(t, i)))
+          .map(t -> new MessageListenerData<>(channelType, t.getA(), t.getB()))
+          .peek(this.sentListenerMessages::remove)
+          .collect(Collectors.toCollection(ArrayList::new));
     }
 
+    this.sendListenerMessage(MessageType.Control.LISTENER_REMOVE, data);
     logger.info("Sent '{}' listener remove message", channelType.getName());
   }
 
-  public void addReceiverHost(ChannelParticipant host, MessageListenerData<?> data) {
+  public void addReceiverHost(ChannelParticipant host, Collection<MessageListenerData<?>> dataCollection) {
     if (host.equals(this.manager.getSelf())) {
       return;
     }
 
-    this.listenerHosts.computeIfAbsent(data, k -> ConcurrentHashMap.newKeySet()).add(host);
+    for (MessageListenerData<?> data : dataCollection) {
+      this.listenerHosts.computeIfAbsent(data, k -> ConcurrentHashMap.newKeySet()).add(host);
+    }
     logger.info("Added remote listener from '{}'", host);
   }
 
-  public void removeReceiverHost(ChannelParticipant host, MessageListenerData<?> data) {
-    this.listenerHosts.remove(data).remove(host);
+  public void removeReceiverHost(ChannelParticipant host, Collection<MessageListenerData<?>> dataCollection) {
+    for (MessageListenerData<?> data : dataCollection) {
+      Set<ChannelParticipant> participants = this.listenerHosts.get(data);
+      if (participants != null) {
+        participants.remove(host);
+
+        if (participants.isEmpty()) {
+          this.listenerHosts.remove(data);
+        }
+      }
+    }
     logger.info("Removed listener of host '{}'", host);
   }
 
   public void removeReceiverHost(ChannelParticipant host) {
     this.listenerHosts.values().forEach(v -> v.remove(host));
-    logger.info("Removed listener of host '{}'", host);
+    logger.info("Removed listeners of host '{}'", host);
   }
 }
