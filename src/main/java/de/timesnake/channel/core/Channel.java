@@ -208,6 +208,10 @@ public abstract class Channel implements de.timesnake.channel.util.Channel {
     this.localListenerManager.removeListenerSync(listener);
   }
 
+  public Logger getLogger() {
+    return logger;
+  }
+
   public ConcurrentHashMap<ChannelParticipant, ChannelConnection> getChannelByParticipant() {
     return channelByParticipant;
   }
