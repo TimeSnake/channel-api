@@ -2,7 +2,6 @@
  * Copyright (C) 2023 timesnake
  */
 
-import ch.qos.logback.classic.Logger;
 import de.timesnake.channel.core.Channel;
 import de.timesnake.channel.core.ChannelParticipant;
 import de.timesnake.channel.util.listener.ChannelHandler;
@@ -12,7 +11,8 @@ import de.timesnake.channel.util.message.ChannelMessage;
 import de.timesnake.channel.util.message.ChannelServerMessage;
 import de.timesnake.channel.util.message.MessageType;
 import de.timesnake.library.basic.util.Status;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +20,7 @@ import java.util.function.Consumer;
 
 public class TestNetwork {
 
-  public static final Logger LOGGER = (Logger) LoggerFactory.getLogger("test");
+  public static final Logger LOGGER = LogManager.getLogger("test");
   private static int PORT_COUNTER = 10000;
 
   public static List<Channel> createChannelInstances(int number) {
