@@ -10,7 +10,6 @@ import de.timesnake.channel.util.message.ChannelMessage;
 import de.timesnake.channel.util.message.FilterMessage;
 import de.timesnake.channel.util.message.MessageType.Control;
 import de.timesnake.channel.util.message.VoidMessage;
-import de.timesnake.library.basic.util.Loggers;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -127,7 +126,7 @@ public abstract class Channel implements de.timesnake.channel.util.Channel {
       this.initConnectThread.interrupt();
     }
 
-    Loggers.CHANNEL.info("Channel stopped");
+    this.logger.info("Channel stopped");
   }
 
   protected void acceptConnection(Socket socket) {

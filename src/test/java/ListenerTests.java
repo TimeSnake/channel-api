@@ -2,13 +2,12 @@
  * Copyright (C) 2023 timesnake
  */
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
 import de.timesnake.channel.core.Channel;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.List;
@@ -17,7 +16,7 @@ public class ListenerTests extends TestNetwork {
 
   @BeforeAll
   static void logInfo() {
-    ((Logger) LoggerFactory.getLogger("channel")).setLevel(Level.INFO);
+    Configurator.setAllLevels("channel", Level.INFO);
   }
 
   @Test

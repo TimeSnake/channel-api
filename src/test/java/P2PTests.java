@@ -2,12 +2,11 @@
  * Copyright (C) 2023 timesnake
  */
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
 import de.timesnake.channel.core.Channel;
 import de.timesnake.channel.util.listener.ChannelListener;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.junit.jupiter.api.*;
-import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 
@@ -18,7 +17,7 @@ public class P2PTests extends TestNetwork {
 
   @BeforeAll
   static void logInfo() {
-    ((Logger) LoggerFactory.getLogger("channel")).setLevel(Level.INFO);
+    Configurator.setAllLevels("channel", Level.INFO);
   }
 
   @BeforeEach
