@@ -57,12 +57,6 @@ public enum ListenerType {
   USER_STORY_AUDIO_END(ChannelType.USER, MessageType.User.STORY_AUDIO_END, ChannelUserMessage.class),
   USER_STORY_AUDIO_FAIL(ChannelType.USER, MessageType.User.STORY_AUDIO_FAIL, ChannelUserMessage.class),
 
-  SUPPORT_TICKET_LOCK(ChannelType.SUPPORT, MessageType.Support.TICKET_LOCK, ChannelSupportMessage.class),
-  SUPPORT_SUBMIT(ChannelType.SUPPORT, MessageType.Support.SUBMIT, ChannelSupportMessage.class),
-  SUPPORT_REJECT(ChannelType.SUPPORT, MessageType.Support.REJECT, ChannelSupportMessage.class),
-  SUPPORT_ACCEPT(ChannelType.SUPPORT, MessageType.Support.ACCEPT, ChannelSupportMessage.class),
-  SUPPORT_CREATION(ChannelType.SUPPORT, MessageType.Support.CREATION, ChannelSupportMessage.class),
-
   GROUP_ALIAS(ChannelType.GROUP, MessageType.Group.ALIAS, ChannelGroupMessage.class),
   GROUP_PERMISSION(ChannelType.GROUP, MessageType.Group.PERMISSION, ChannelGroupMessage.class),
 
