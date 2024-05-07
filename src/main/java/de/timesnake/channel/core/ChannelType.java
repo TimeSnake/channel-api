@@ -43,14 +43,6 @@ public abstract class ChannelType<Identifier extends Serializable> implements Se
       return Group.TYPES;
     }
   };
-  public static final ChannelType<String> SUPPORT = new ChannelType<>("support", String.class) {
-
-    @Override
-    public Collection<MessageType<?>> getMessageTypes() {
-      return Support.TYPES;
-    }
-  };
-
   public static final ChannelType<String> DISCORD = new ChannelType<>("discord", String.class) {
 
     @Override
@@ -66,7 +58,7 @@ public abstract class ChannelType<Identifier extends Serializable> implements Se
     }
   };
 
-  public static final List<ChannelType<?>> TYPES = List.of(USER, SERVER, CONTROL, GROUP, SUPPORT, DISCORD, TEMPLATES);
+  public static final List<ChannelType<?>> TYPES = List.of(USER, SERVER, CONTROL, GROUP, DISCORD, TEMPLATES);
 
   private final String name;
   private final Class<? extends Serializable> identifierClass;
