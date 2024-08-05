@@ -97,7 +97,7 @@ public abstract class ChannelSender {
       try {
         locked = hostLock.tryLock(3, TimeUnit.SECONDS);
         if (!locked) {
-          logger.warn("Unable to lock connection to '{}', due to timeout", connection);
+          logger.warn("Unable to lock connection to '{}', due to timeout", connection.getParticipant());
           return new ResultMessage().addResult(participant, false,
               new ChannelException("send lock error", new TimeoutException("timed out while locking")));
         }
