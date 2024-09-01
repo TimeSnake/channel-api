@@ -7,7 +7,7 @@ plugins {
 
 
 group = "de.timesnake"
-version = '4.1.2'
+version = '5.0.0'
 var projectId = 22
 
 repositories {
@@ -68,6 +68,12 @@ publishing {
 tasks.withType(JavaCompile).configureEach {
   options.encoding = 'UTF-8'
   options.release = 21
+}
+
+java {
+  toolchain {
+    languageVersion = JavaLanguageVersion.of(21)
+  }
 }
 
 java {
