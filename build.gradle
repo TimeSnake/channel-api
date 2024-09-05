@@ -31,6 +31,7 @@ dependencies {
   compileOnly 'org.apache.logging.log4j:log4j-core:2.22.1'
 
   testImplementation "de.timesnake:library-basic:2.+"
+  testImplementation "net.kyori:adventure-api:4.11.0"
 
   testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
   testImplementation 'org.apache.logging.log4j:log4j-api:2.22.1'
