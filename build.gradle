@@ -41,7 +41,7 @@ dependencies {
 configurations.configureEach {
   resolutionStrategy.dependencySubstitution {
     if (project.parent != null) {
-      substitute module("de.timesnake:library-basic") using project(":library-basic")
+      substitute module("de.timesnake:library-basic") using project(":libraries:library-basic")
     }
   }
 }
