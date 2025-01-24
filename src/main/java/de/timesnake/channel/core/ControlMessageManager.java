@@ -110,12 +110,17 @@ public class ControlMessageManager {
 
   private void handleReconnectMessage(ChannelConnection newConnection, ChannelControlMessage<?> msg) {
     ChannelParticipant participant = msg.getIdentifier();
+    ChannelConnection connection = this.manager.getChannelConnection(participant);
 
-    try {
-      this.manager.getChannelConnection(participant).updateToReconnectedConnection(newConnection);
-      logger.info("Updated socket of '{}', due to reconnection", participant.getName());
-    } catch (IOException e) {
-      logger.warn("Failed to handle reconnection of '{}': {}", participant.getName(), e.getMessage());
+    if (connection != null) {
+      try {
+        connection.updateToReconnectedConnection(newConnection);
+        logger.info("Updated socket of '{}', due to reconnection", participant.getName());
+      } catch (IOException e) {
+        logger.warn("Failed to handle reconnection of '{}': {}", participant.getName(), e.getMessage());
+      }
+    } else {
+      logger.warn("Failed to handle reconnection of '{}': connection is null", participant.getName());
     }
   }
 
