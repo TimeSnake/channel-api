@@ -69,8 +69,8 @@ public class ChannelReceiver {
           connection.getSocket().getPort(), e.getMessage());
     } catch (Exception e) {
       logger.warn("Exception while handling message from '{}:{}': {}",
-          connection.getParticipant().getName(),
-          connection.getParticipant().getListenPort(), e.getMessage());
+          connection.getParticipant() != null ? connection.getParticipant().getName() : "unknown",
+          connection.getParticipant() != null ? connection.getParticipant().getListenPort() : "", e.getMessage());
       e.printStackTrace();
     }
   }
