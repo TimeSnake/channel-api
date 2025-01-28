@@ -37,7 +37,6 @@ public enum ListenerType {
 
   USER_STATUS(ChannelType.USER, MessageType.User.STATUS, ChannelUserMessage.class),
   USER_SERVICE(ChannelType.USER, MessageType.User.SERVICE, ChannelUserMessage.class),
-  USER_SWITCH_PORT(ChannelType.USER, MessageType.User.SWITCH_PORT, ChannelUserMessage.class),
   USER_SWITCH_NAME(ChannelType.USER, MessageType.User.SWITCH_NAME, ChannelUserMessage.class),
   USER_PERMISSION(ChannelType.USER, MessageType.User.PERMISSION, ChannelUserMessage.class),
   USER_PUNISH(ChannelType.USER, MessageType.User.PUNISH, ChannelUserMessage.class),
