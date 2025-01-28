@@ -83,7 +83,6 @@ public class MessageType<Value extends Serializable> implements Serializable {
 
     public static final MessageType<Status.User> STATUS = new MessageType<>("status");
     public static final MessageType<Boolean> SERVICE = new MessageType<>("service");
-    public static final MessageType<Integer> SWITCH_PORT = new MessageType<>("switch_port");
     public static final MessageType<String> SWITCH_NAME = new MessageType<>("switch_name");
     public static final MessageType<VoidMessage> PERMISSION = new MessageType<>("permission");
     public static final MessageType<Punishment> PUNISH = new MessageType<>("punish");
@@ -102,7 +101,7 @@ public class MessageType<Value extends Serializable> implements Serializable {
     public static final MessageType<String> STORY_AUDIO_PLAY = new MessageType<>("story_audio_play");
     public static final MessageType<String> STORY_AUDIO_END = new MessageType<>("story_audio_end");
     public static final MessageType<String> STORY_AUDIO_FAIL = new MessageType<>("story_audio_fail");
-    public static final Set<MessageType<?>> TYPES = Set.of(STATUS, SERVICE, SWITCH_PORT, SWITCH_NAME, PERMISSION,
+    public static final Set<MessageType<?>> TYPES = Set.of(STATUS, SERVICE, SWITCH_NAME, PERMISSION,
         PUNISH, ALIAS, TASK, COMMAND, PROXY_COMMAND, PERM_GROUP, DISPLAY_GROUP, TEAM, STATISTICS, CUSTOM, SOUND,
         STORY_START, STORY_END, STORY_AUDIO_PLAY, STORY_AUDIO_END, STORY_AUDIO_FAIL);
 
