@@ -7,7 +7,7 @@ plugins {
 
 
 group = "de.timesnake"
-version = "5.1.0"
+version = "5.2.0"
 var projectId = 22
 
 repositories {
@@ -21,11 +21,11 @@ repositories {
 }
 
 dependencies {
-  compileOnly("de.timesnake:library-basic:2.+")
+  implementation("de.timesnake:library-basic:2.+")
 
-  compileOnly("org.jetbrains:annotations:23.0.0")
-  compileOnly("org.apache.logging.log4j:log4j-api:2.22.1")
-  compileOnly("org.apache.logging.log4j:log4j-core:2.22.1")
+  implementation("org.jetbrains:annotations:23.0.0")
+  implementation("org.apache.logging.log4j:log4j-api:2.22.1")
+  implementation("org.apache.logging.log4j:log4j-core:2.22.1")
 
   testImplementation("de.timesnake:library-basic:2.+")
   testImplementation("net.kyori:adventure-api:4.11.0")
