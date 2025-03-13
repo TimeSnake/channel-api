@@ -7,7 +7,7 @@ plugins {
 
 
 group = "de.timesnake"
-version = "5.2.0"
+version = "6.0.0"
 var projectId = 22
 
 repositories {
@@ -21,13 +21,13 @@ repositories {
 }
 
 dependencies {
-  implementation("de.timesnake:library-basic:2.+")
+  api("de.timesnake:library-basic:3.+")
 
-  implementation("org.jetbrains:annotations:23.0.0")
-  implementation("org.apache.logging.log4j:log4j-api:2.22.1")
-  implementation("org.apache.logging.log4j:log4j-core:2.22.1")
+  api("org.jetbrains:annotations:23.0.0")
+  api("org.apache.logging.log4j:log4j-api:2.22.1")
+  api("org.apache.logging.log4j:log4j-core:2.22.1")
 
-  testImplementation("de.timesnake:library-basic:2.+")
+  testImplementation("de.timesnake:library-basic:3.+")
   testImplementation("net.kyori:adventure-api:4.11.0")
 
   testImplementation("org.junit.jupiter:junit-jupiter-engine:5.9.2")
@@ -35,10 +35,15 @@ dependencies {
   testImplementation("org.apache.logging.log4j:log4j-core:2.22.1")
 }
 
-configurations.configureEach {
-  resolutionStrategy.dependencySubstitution {
-    if (project.parent != null) {
-      substitute(module("de.timesnake:library-basic")).using(project(":libraries:library-basic"))
+configurations.all {
+  resolutionStrategy.dependencySubstitution.all {
+    requested.let {
+      if (it is ModuleComponentSelector && it.group == "de.timesnake") {
+        val targetProject = findProject(":${it.module}")
+        if (targetProject != null) {
+          useTarget(targetProject)
+        }
+      }
     }
   }
 }
